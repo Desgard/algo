@@ -1,0 +1,4 @@
+theme: "book"
+baseURL = "http://example.org/"
+languageCode = "zh-cn"
+title = "一瓜算法小册"
