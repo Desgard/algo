@@ -1,0 +1,24 @@
+baseURL: https://www.desgard.com/algo
+title: 一瓜算法小册
+relativeURLs: false
+languageCode: zh-CN
+theme: book
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  tableOfContents:
+    startLevel: 1
+
+# menu:
+#   before:
+#     - name: "Github"
+#       url: "https://github.com/alex-shpak/hugo-book"
+#       weight: 10
+#     - name: "Hugo Themes"
+#       url: "https://themes.gohugo.io/hugo-book/"
+#       weight: 20
+
+params:
+  BookMenuBundle: /menu

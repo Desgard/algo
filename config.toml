@@ -1,5 +1,0 @@
-baseURL = "https://www.desgard.com/algo"
-relativeURLs = false
-languageCode = "zh-CN"
-title = "一瓜算法小册"
-theme = "book"
