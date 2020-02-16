@@ -20,20 +20,36 @@ type: docs
 {{< /columns >}}
 
 
+![title](https://raw.githubusercontent.com/Desgard/algo/img/img/_index/algo-book-title.png)
 
 
-## 为什么我一个移动端工程师要写这个算法小册
+## 为什么我要写这个算法小册
 
+其实有这么几点原因吧。笔者在读书期间做过很长一段时间的 ACM-ICPC 竞赛，坚持写以下小册可以对上学期间学到的算法知识继续总结和梳理，在做过工程之后对原先的竞赛代码将会有进一步的理解。结合工程角度来回顾算法，也会加深程序设计的能力。
 
+另外，算法面试日益常见，很多朋友在遇到算法题目时往往没有头绪要从哪里入手练习。笔者一向注重知识开源精神，也希望算法能力应该逐渐成为软件工程师的基础能力。工程师的目标是解决问题，编程语言是处理问题的工具，而算法和数据结构则是提高生产力的方法论。
 
-    var panel = ram_design;
-    if (backup + system) {
-        file.readPoint = network_native;
-        sidebar_engine_device(cell_tftp_raster,
-                dual_login_paper.adf_vci.application_reader_design(
-                graphicsNvramCdma, lpi_footer_snmp, integer_model));
-    }
+## 本系列的北极星指标和核心价值
 
-## Locis suis novi cum suoque decidit eadem
+* **北极星指标**：LeetCode 题目的 AC 速度。
+* **核心价值**：工程师角度解决算法问题。
 
-Idmoniae ripis, at aves, ali missa adest, ut _et autem_, et ab?
+## 目标读者
+
+本书不建议没有任何编程经验的读者阅读，其目标读者包含以下几部分人群：
+
+1. 想要提高算法能力的软件工程师；
+2. 想要提高面试中解决算法题目能力的软件工程师
+
+## 互动与勘误
+
+如果文章有所遗漏，欢迎到 [一瓜算法小册 desgard.com/algo](https://www.desgard.com/algo/) 本站点进行评论和互动，对于斧正及有价值的交流作者往往会在一天之内回复。感谢您的支持与帮助。
+
+## 授权与声明
+
+作品同时也会在《让技术一瓜公食》微信公众号上第一时间发布。欢迎关注。
+
+![公众号二维码](https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png)
+
+本作品采用 **[知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans)** 进行许可。
+
