@@ -1,6 +1,8 @@
+---
+title: 时间复杂度估算土法
+isShowInfo: true
+---
 
-
-# 时间复杂度估算土法
 
 ![title](https://raw.githubusercontent.com/Desgard/algo/img/img/part1/time-complexity/title.png)
 
