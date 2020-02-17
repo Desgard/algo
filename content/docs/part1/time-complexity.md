@@ -1,4 +1,9 @@
 
+
+# 时间复杂度估算土法
+
+![title](https://raw.githubusercontent.com/Desgard/algo/img/img/part1/time-complexity/title.png)
+
 想必大家都知道很多算法书上面的复杂度计算基础的“第一章节”，长到你不想看。但是不看吧又觉得失去了什么。所以这篇文章就来说说这个复杂度有没有什么通俗易懂的土方法来计算。
 
 ## 土法一：执行一行约是一次运算
@@ -7,51 +12,57 @@
 
 来写一段从 `1` 累加到 `100` 的代码：
 
-    s = 0
-    for i in range(1, 101):
-        s += i
-    print(s) # 5050
+```python
+s = 0
+for i in range(1, 101):
+    s += i
+print(s) # 5050
+```
 
- 如此要循环 `100` 次，时间复杂度就是 `O(100)` 。如此，我们改变计算上届，将 `100` 扩大到 `n` ，这样便会发现使用循环的方法进行累加是一个时间复杂度为 `O(n)` 的算法。
+ 如此要循环 `100` 次，时间复杂度就是 {{< katex >}}O_{(100)}{{< /katex >}} 。如此，我们改变计算上届，将 `100` 扩大到 `n` ，这样便会发现使用循环的方法进行累加是一个时间复杂度为 {{< katex >}}O_{(n)}{{< /katex >}} 的算法。
 
 我们将累加算法改成等差数列前 `n` 项求和来计算：
 
-    s = (1 + 100) * 100 // 2 # 5050
+```python
+s = (1 + 100) * 100 // 2 # 5050
+```
 
-如此，我们将一个 `O(n)` 的算法优化到了 `O(1)` 。这种优化无论是对于计算机，还是我们人脑，都可以大幅度的降低运算复杂度。
+如此，我们将一个 {{< katex >}}O_{(n)}{{< /katex >}} 的算法优化到了 {{< katex >}}O_{(1)}{{< /katex >}} 。这种优化无论是对于计算机，还是我们人脑，都可以大幅度的降低运算复杂度。
 
-为什么说高斯是天才，因为他在小学三年级就发现了这个规律，并将一个 `O(n)` 的算法优化到了 `O(1)`。
+为什么说高斯是天才，因为他在小学三年级就发现了这个规律，并将一个 {{< katex >}}O_{(n)}{{< /katex >}}  的算法优化到了 {{< katex >}}O_{(1)}{{< /katex >}} 。
 
 ## 土法二：以经验计算时间
 
 以前我在大学的时候参加 ACM 竞赛有这么一个土方法：
 
-**一般的计算机，在处理 `10^7` 计算的时候需要消耗一秒的时间。可以写一个来验证一下：**
+**一般的计算机，在处理 {{< katex >}}10^7{{< /katex >}}  计算的时候需要消耗一秒的时间。可以写一个来验证一下：**
 
-    import datetime
-    
-    tot_time = 0
-    
-    for t in range(0, 10):
-        st = datetime.datetime.now()
-        sum = 0
-        for i in range(0, 10000000):
-            sum += i
-    
-        ed = datetime.datetime.now()
-        inv = ed - st
-        tot_time += inv.microseconds / (10 ** 6)
-    
-    print(tot_time / 10) 
-    # 0.827902s
+```python
+import datetime
 
-我们发现在我的机器上 `10^7` 数量级的计算在 10 次平均下是 `0.827902` 秒，接近一秒。
+tot_time = 0
+
+for t in range(0, 10):
+    st = datetime.datetime.now()
+    sum = 0
+    for i in range(0, 10000000):
+        sum += i
+
+    ed = datetime.datetime.now()
+    inv = ed - st
+    tot_time += inv.microseconds / (10 ** 6)
+
+print(tot_time / 10) 
+# 0.827902s
+```
+
+我们发现在我的机器上 {{< katex >}}10^7{{< /katex >}}  数量级的计算在 10 次平均下是 `0.827902` 秒，接近一秒。
 
 我们用搜索问题来举例
 
-> 如果我们有一个**有序数组** `arr` ，其中有 `10^8` 个数字，这时候给出一数字 `n` ，求在这个数组中是否有这个数 `n` ，有则返回 `true` 反之 `false` 。**我们要求在 `1000ms` 时间内完成。**
+> 如果我们有一个**有序数组** `arr` ，其中有 {{< katex >}}10^8{{< /katex >}} 个数字，这时候给出一数字 `n` ，求在这个数组中是否有这个数 `n` ，有则返回 `true` 反之 `false` 。**我们要求在 `1000ms` 时间内完成。**
 
-注意最后一句，如果我们采取枚举的方案来解决这个问题，那么我们根据之前的经验来估算，**需要 `10^8 / 10^7 * 1s` 也就是 `10` 秒**。
+注意最后一句，如果我们采取枚举的方案来解决这个问题，那么我们根据之前的经验来估算，**需要 {{< katex >}}\frac{10^8}{10^7} \times 1{{< /katex >}} 也就是 `10` 秒**。
 
 由于是有序数组，那么我们来计算一下二分查找的复杂度：
 
@@ -114,12 +125,20 @@ f(n)=log_{2}n!+nlog_{2}n+n+1
 例如我们得到的 `f'(n)` 无法判断，那么我就取出这里面两个子式来求等价性：
 
 {{< katex display >}}
-{\lim_{x \to \infty}}\frac{logn!}{nlogn}={\lim_{x \to \infty}}\frac{log((\sqrt{2\pi n})\frac{n^n}{e^n})}{nlogn}={\lim_{x \to \infty}}\frac{\frac{1}{2}log(2\pi) + \frac{1}{2}logn + nlogn - nloge}{nlogn}={\lim_{x \to \infty}}(\frac{0.5log(2\pi)}{nlogn}+\frac{1}{2n}+1-\frac{1}{ln\ n})=1
+\begin{aligned}
+    &{\lim_{x \to \infty}}\frac{logn!}{nlogn} \\ 
+    =&{\lim_{x \to \infty}}\frac{log((\sqrt{2\pi n})\frac{n^n}{e^n})}{nlogn}\\
+    =&{\lim_{x \to \infty}}\frac{\frac{1}{2}log(2\pi) + \frac{1}{2}logn + nlogn - nloge}{nlogn} \\
+    =&{\lim_{x \to \infty}}(\frac{0.5log(2\pi)}{nlogn}+\frac{1}{2n}+1-\frac{1}{ln\ n})\\
+    =&1
+\end{aligned}
 {{< /katex >}}
 
 所以我们发现剩下的两个式子是等价无穷大的。我们得到整体的时间复杂度：
 
-$$f'(n) \Rightarrow O(nlog_2n)$$
+{{< katex display >}}
+f'(n) \Rightarrow O(nlog_2n)
+{{< /katex >}}
 
 所以我们可以总结出来一个规律，**子式选最大，就是我们要的时间复杂度。**
 
@@ -128,5 +147,5 @@ $$f'(n) \Rightarrow O(nlog_2n)$$
 这篇文章我们讲了：
 
 - 如何结合题目的数据量来估算程序耗时，以及通过复杂度的估算来提示我们要选用什么算法；
-- 耗时和复杂度的关系，大概就是 `10^7` 为一秒；
+- 耗时和复杂度的关系，**大概就是 {{< katex >}}10^7{{< /katex >}} 为一秒**；
 - 取极限来舍去较小的子式，留下的最大子式即可作为整体算法的时间复杂度；

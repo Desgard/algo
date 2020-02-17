@@ -4,6 +4,8 @@ relativeURLs: false
 languageCode: zh-CN
 theme: book
 
+wechatQRCode: https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png
+
 markup:
   goldmark:
     renderer:
@@ -22,3 +24,5 @@ markup:
 
 params:
   BookMenuBundle: /menu
+
+  WechatQRCode: https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png
