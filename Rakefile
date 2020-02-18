@@ -13,6 +13,11 @@ task :gen do
   system "hugo"
 end
 
+desc "Run Hugo server to test"
+task :s do 
+  system "hugo server -D"
+end
+
 desc "Copy image resource to img branch"
 task :img do
   Dir.mktmpdir do |tmp|
@@ -44,8 +49,8 @@ task :publish => [:gen] do
     system "git checkout --orphan #{GITHUB_REPO_BRANCH}"    
     system "git add ."
     system "git config user.email 'gua@desgard.com'"
-    msg = "#{Time.now.utc} - Updated"
-    system "git commit -am #{msg.inspect}"
+    msg = "#{Time.now.utc}"
+    system "git commit -am '勤劳的冬瓜在 #{msg} 又更新了 algo 算法小册，快来阅读吧！👉🏻 www.desgard.com/algo'"
     system "git remote add origin git@github.com:#{GITHUB_REPONAME}.git"
     system "git push origin #{GITHUB_REPO_BRANCH} --force"
 

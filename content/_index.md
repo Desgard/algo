@@ -49,7 +49,9 @@ type: docs
 
 作品同时也会在《让技术一瓜公食》微信公众号上第一时间发布。欢迎关注。
 
-<!-- ![公众号二维码](https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png)
+---
 
-本作品采用 **[知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans)** 进行许可。 -->
+![公众号二维码](https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png)
+
+本作品采用 **[知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans)** 进行许可。
 
