@@ -24,7 +24,7 @@ title: 矩阵的递推关系分析
 \begin{bmatrix}f(n)\\f(n-1)\end{bmatrix}=\begin{bmatrix}1&1\\ 1&0\end{bmatrix}\begin{bmatrix}f(n-1)\\f(n-2)\end{bmatrix}
 {{< /katex >}}
 
-再来分析一下我们将表达式 `f(n) = f(n - 1) + f(n - 2)` 转化成矩阵形式的递推公式到底目的是什么？为什么只要这么做，就可以带来优化算法时间复杂度的收益？
+再来分析一下我们将表达式 {{< katex >}}f(n) = f(n - 1) + f(n - 2){{< /katex >}} 转化成矩阵形式的递推公式到底目的是什么？为什么只要这么做，就可以带来优化算法时间复杂度的收益？
 
 从这三个点来思考：
 
