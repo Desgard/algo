@@ -16,9 +16,13 @@ headless: true
     - [欧几里得算法]({{< relref "/docs/part2/ch02/2-euclidean" >}})
     - [*扩展欧几里得算法]({{< relref "/docs/part2/ch02/3-ext-euclidean" >}})
   - 第三章 经典模型
-    - ST 算法解决 RMQ 问题
+    - [RMQ 问题]({{< relref "/docs/part2/ch03/1-range-max-query" >}})
 - 第三部分 数据结构
 - 第四部分 图论
-  - 第一章 图论基础
+  - 第一章 图论基础算法
+  - 第二章 深度优先的连通性分析
+  - 第三章 网络流
+    - [*初识最大流问题]({{< relref "/docs/part4/ch03/1-maximum-flow-basic" >}})
+  - 第四章 二分图匹配
 - 第五部分 数学建模
 
