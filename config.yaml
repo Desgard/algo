@@ -4,6 +4,8 @@ relativeURLs: false
 languageCode: zh-CN
 theme: book
 
+# googleAnalytics: "UA-XXXXXXXXX-X"
+
 wechatQRCode: https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png
 
 markup:
