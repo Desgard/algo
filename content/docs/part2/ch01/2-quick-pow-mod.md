@@ -2,6 +2,8 @@
 title: 快速幂取模算法
 ---
 
+![题头](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch01/2-quick-pow-mod/title.png)
+
 上一篇文章我们讲了如何将幂运算优化到 {{< katex >}}O(logN){{< /katex >}} 的方法。这一篇来研究一下，快速幂算法与取模运算是如何结合的。
 
 ## 取余和取模

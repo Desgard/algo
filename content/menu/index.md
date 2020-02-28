@@ -22,7 +22,7 @@ headless: true
   - 第二章 区间数据结构
     - [用线段树再看 RMQ 问题]({{< relref "/docs/part3/ch02/1-segment-tree-rmq" >}})
     - [线段树实战要点]({{< relref "/docs/part3/ch02/2-segment-tree-combat" >}})
-    - 线段树区间更新操作
+    - [线段树区间更新操作]({{< relref "/docs/part3/ch02/3-segment-tree-range" >}})
   - 第三章 字符串
   - 第四章 排序二叉树
 - 第四部分 图论

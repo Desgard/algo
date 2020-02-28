@@ -2,6 +2,7 @@
 title: 矩阵快速幂
 ---
 
+![题头](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch01/3-matrix-quick-pow/title.png)
 
 ## 回顾
 

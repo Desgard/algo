@@ -2,6 +2,8 @@
 title: 线段树实战要点
 ---
 
+![题头](https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/2-segment-tree-combat/title.png)
+
 在上一公众号中 [《用线段树再看 RMQ 问题》](https://www.desgard.com/algo/docs/part3/ch02/1-segment-tree-rmq/)，通过区间和的问题场景，已经学习了线段树的基本结构，以及其单点更新和区间查询的操作。但是在解 [《LeetCode-307 区域和检索 - 数组可修改》](https://leetcode-cn.com/problems/range-sum-query-mutable/) 这道题目的时候，并不是一帆风顺的。所以这一篇文章我们来讨论一下线段树在做题时会遇到的一些坑。
 
 # 空间退化问题

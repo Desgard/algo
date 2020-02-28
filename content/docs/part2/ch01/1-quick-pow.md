@@ -2,6 +2,8 @@
 title: 加速幂运算
 ---
 
+![题头](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch01/1-quick-pow/title.png)
+
 幂运算是我们平时写代码的时候最常用的运算之一。根据幂运算的定义我们可以知道，如果我们要求 `x` 的 `N` 次幂，那么想当然的就会写出一个 `N` 次的循环，然后累乘得到结果。所以我们要求幂运算的复杂度仍旧是 {{< katex >}}O_{(N)}{{< /katex >}}?
 
 那么有没有一种更快的方法呢？

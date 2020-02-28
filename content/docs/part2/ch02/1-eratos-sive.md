@@ -47,7 +47,7 @@ class Solution:
 
 *Eratosthenes* 筛法进行的是打表，也就是平时说的离线操作，当查询量比较大的时候，我们往往采用这种方法进行离线操作处理；该算法的内容是：首先假设 `n` 个数全部都是素数，然后从 `2` 开始，把**每一个数**的**倍数**都**剔除**并标记成合数（因为合数肯定是有素因子的），这样列表中保存着的都是没有素因子的数，就是我们想要的质数了。
 
-![Eratosthenes 筛法流程](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch02/4-matrix-quick-pow-analysis/etato-flow.gif)
+![Eratosthenes 筛法流程](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch02/1-eratos-sive/etato-flow.gif)
 
 下面我们对之前的代码进行优化
 
@@ -161,7 +161,7 @@ plt.ylabel("Time Complexity(s)")
 plt.legend() # 显示图例
 ```
 
-![时间开销比较](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch02/4-matrix-quick-pow-analysis/compare-graph.png)
+![时间开销比较](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch02/1-eratos-sive/compare-graph.png)
 
 ## 总结
 

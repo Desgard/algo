@@ -2,11 +2,13 @@
 title: 矩阵的递推关系分析
 ---
 
+![题头](https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch01/4-matrix-quick-pow-analysis/title.png)
+
 这篇文章可能会有一些难度，但是所有的预备基础都在前三篇文章中：
 
-- 快速幂
-- 快速幂取模
-- 矩阵快速幂
+- [快速幂](https://www.desgard.com/algo/docs/part2/ch01/1-quick-pow/)
+- [快速幂取模](https://www.desgard.com/algo/docs/part2/ch01/2-quick-pow-mod/)
+- [矩阵快速幂](https://www.desgard.com/algo/docs/part2/ch01/3-matrix-quick-pow/)
 
 ## 引子
 
