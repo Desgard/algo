@@ -17,6 +17,8 @@ headless: true
     - [*扩展欧几里得算法]({{< relref "/docs/part2/ch02/3-ext-euclidean" >}})
   - 第三章 经典模型
     - [RMQ 问题]({{< relref "/docs/part2/ch03/1-range-max-query" >}})
+  - 第四章 二分搜索
+    - [二分搜索·上]({{< relref "/docs/part2/ch04/1-binary-search-one" >}})
 - 第三部分 数据结构
   - 第一章 基础数据结构
   - 第二章 区间数据结构
@@ -30,6 +32,7 @@ headless: true
   - 第二章 深度优先的连通性分析
   - 第三章 网络流
     - [*初识最大流问题]({{< relref "/docs/part4/ch03/1-maximum-flow-basic" >}})
+    - [*Ford-Fulkerson最大流方法]({{< relref "/docs/part4/ch03/2-ford-fulkerson" >}})
   - 第四章 二分图匹配
 - 第五部分 数学建模
 
