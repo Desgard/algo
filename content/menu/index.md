@@ -33,6 +33,7 @@ headless: true
   - 第三章 网络流
     - [*初识最大流问题]({{< relref "/docs/part4/ch03/1-maximum-flow-basic" >}})
     - [*Ford-Fulkerson最大流方法]({{< relref "/docs/part4/ch03/2-ford-fulkerson" >}})
+    - [*二分匹配的最大流思维]({{< relref "/docs/part4/ch03/3-perfect-matching" >}})
   - 第四章 二分图匹配
 - 第五部分 数学建模
 
