@@ -172,7 +172,7 @@ $$O(V·F)$$
 
 为了解释 BFS 的查询方式，我又画了一个不规则的流网络来简书 BFS 查询最短路的流程：
 
-![EK%20BFS/EK_.gif](EK%20BFS/EK_.gif)
+![BFS 搜索增广路](https://github.com/Desgard/algo/raw/img/img/part4/ch03/4-edmond-karp/ek-find-path.gif)
 
 从这个过程中可以看出，我们从源点 `S` 进行 BFS 广度优先搜索，当第一次到达汇点 `T` 后就停止搜索，然后来执行我们的**增加流量**和**建立反向边的操作**。由于我们需要在到达汇点 `T` 后来处理这条路径，所以**需要一个数组或者 Map 记录每一个节点的入度边，这样也就可以从后向前获取到这条路径了**。
 
@@ -218,7 +218,7 @@ void bfs(int s, int t) {
 
 ## 2. 增广路径上的边与反向边的容量操作
 
-![EK%20BFS/EK_%201.gif](EK%20BFS/EK_%201.gif)
+![回溯增广路，流量更新](https://github.com/Desgard/algo/raw/img/img/part4/ch03/4-edmond-karp/ek-update-path.gif)
 
 在这个过程中，通过我们上方记录的 `unordered_map<int, pair<int, int>> pre` 前驱入度集合，从 `T` 点开始向前回溯，每次回溯的时候通过访问 `int a[MAX_V]` 来获得这条增广路上的最小流量，然后更新每一个边和反向边。
 
@@ -252,7 +252,7 @@ int max_flow(int s, int t) {
 
 # EK 最大流完整实现
 
-![EK%20BFS/Untitled%202.png](EK%20BFS/Untitled%202.png)
+![之前口罩运输例子](https://github.com/Desgard/algo/raw/img/img/part4/ch03/1-maximum-flow-basic/mf-origin-problem.png)
 
 我们用 「Ford-Fulkerson 最大流方法」中的引例再做一次测试，这次使用 EK 算法来求解最大流。
 
@@ -342,15 +342,21 @@ int main() {
 
 由于这次我们使用了 BFS 求解增广路，假设我们的节点数量是 V，边的数量是 E，则 EK 算法的时间复杂度上限是：
 
-$$O(V·E^2)$$
+{{< katex display >}}
+O(V·E^2)
+{{< /katex >}}
 
 分析起来很简单，**因为 BFS 找增广路的时间复杂度是 O(E)，最多需要 O(V·E) 次查询，所以可得到答案**。如果想看证明，我会在「阅读原文」中的「一瓜算法小册」中进行更新。
 
 我们已经知道了 FF 算法和 EK 算法的复杂度：
 
-$$T_{FF} = O(E·F)$$
+{{< katex display >}}
+T_{FF} = O(E·F)
+{{< /katex >}}
 
-$$T_{EK}=O(V·E^2)$$
+{{< katex display >}}
+T_{EK}=O(V·E^2)
+{{< /katex >}}
 
 根据复杂度，我们可以总结出这么一个结论（E 是边的数量，V 是节点数量）：
 
@@ -363,6 +369,3 @@ $$T_{EK}=O(V·E^2)$$
 
 在 Fold-Fulkerson 方法的基础之上，我们了解了增广路，了解了最小割。但是对于流量而言，无论是 FF 方法还是 EK 算法，我们一直都忽视了一个重要的关键，那就是对**距离的描述**。下一篇文章我们来讲述在距离的帮助下，什么是分层网络，以及 Dinic 最大流算法是如何优化的！
 
-# 引用
-
-- 《算法导论》
