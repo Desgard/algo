@@ -48,7 +48,7 @@ title: 二分匹配的最大流思维
 
 此时，我们将问题 **变成了一个多限制流量源点（A、B、C）多汇点（X、Y、Z）的最大流问题** ！但是我们并不会求多限制源点多汇点的最大流，因为我们没有学过具体的方法。但是我们发现，这些源点流量是被限制的，可不可以通过一个方法让这些点自然带上这些限制的流量？**当然有，加一条有容量的边！**
 
-![转换成最大流问题](https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-max-flow.pngUntitled/Untitled%205.png)
+![转换成最大流问题](https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-max-flow.png)
 
 我们在图的两边分别增加了一个超级源 S 和超级汇 T 两个点，其中 S 具有无穷流量。然后分别增加了 S 到 A、B、C 的边，X、Y、Z 到 T 的边，且这些边的容量都是 1。**通过容量我们限制了 A 、B、C 的流量都是 1，并且由于都是以一个单位统计，则流入 T 的流量结果就是最大的匹配数** 。
 
