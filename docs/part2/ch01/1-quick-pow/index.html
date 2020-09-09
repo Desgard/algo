@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="加速幂运算"><meta property="og:title" content="加速幂运算" />
+<meta property="og:description" content="幂运算是我们平时写代码的时候最常用的运算之一。根据幂运算的定义我们可以知道，如果我们要求 x 的 N 次幂，那么想当然的就会写出一个 N 次的循环，然后累乘得到结果。所以我们要求幂运算的复杂度仍旧是   \(O_{(N)}\)  ?
+那么有没有一种更快的方法呢？
+这里给出一种在计算机领域常用的快速幂算法，又叫蒙哥马利幂（Montgomery reduction）算法，将 \(O_{(N)}\)  降为 \(O_{(logN)}\)  。
+我通过例子来讲解这个优化过程：
+假设我们要算 x 的 n 次幂，使用累乘来编写代码：
+res = 1 for i in range(n): res *= x 好的，我们已经完成了 \(O_{(N)}\)  的解法。
+二进制拆分 为了优化这个算法，我们接下来进行数学推导：
+我们继续思考当 N = 10 这个具体场景，我们可以把 10 写成二进制来表示 1010(BIN)，然后我们模拟一次二进制转十进制的过程（复习一下大学知识）：
+\[ 10 = 2^3 \times \underline{1} &#43; 2^2 \times \underline{0} &#43; 2^1 \times \underline{1} &#43; 2^0 \times \underline{0} \]  我用下划线把二进制的 1010 标识出来，这样大家就可以发现二进制和十进制转换时的代数式规律。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part2/ch01/1-quick-pow/" />
+
+<title>加速幂运算 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/"class=active>加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>加速幂运算</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#二进制拆分">二进制拆分</a></li>
+        <li><a href="#编程实现一下-x-的-10-次方">编程实现一下 x 的 10 次方</a></li>
+        <li><a href="#复杂度">复杂度</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>加速幂运算</h1><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch01/1-quick-pow/title.png" alt="题头"></p>
+<p>幂运算是我们平时写代码的时候最常用的运算之一。根据幂运算的定义我们可以知道，如果我们要求 <code>x</code> 的 <code>N</code> 次幂，那么想当然的就会写出一个 <code>N</code> 次的循环，然后累乘得到结果。所以我们要求幂运算的复杂度仍旧是 
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \(O_{(N)}\)
+</span>
+?</p>
+<p>那么有没有一种更快的方法呢？</p>
+<p>这里给出一种在计算机领域常用的快速幂算法，又叫<strong>蒙哥马利幂（Montgomery reduction）算法</strong>，将 
+
+<span class="katex">
+  \(O_{(N)}\)
+</span>
+ 降为 
+
+<span class="katex">
+  \(O_{(logN)}\)
+</span>
+。</p>
+<p>我通过例子来讲解这个优化过程：</p>
+<p>假设我们要算 <code>x</code> 的 <code>n</code> 次幂，使用累乘来编写代码：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">res <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>
+<span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(n):
+    res <span style="color:#f92672">*=</span> x
+</code></pre></div><p>好的，我们已经完成了 
+
+<span class="katex">
+  \(O_{(N)}\)
+</span>
+ 的解法。</p>
+<h2 id="二进制拆分">二进制拆分</h2>
+<p>为了优化这个算法，我们接下来进行数学推导：</p>
+<p>我们继续思考当 <code>N = 10</code> 这个具体场景，我们可以把 10 写成二进制来表示 <code>1010(BIN)</code>，然后我们模拟一次<strong>二进制转十进制的过程（复习一下大学知识）</strong>：</p>
+
+
+<span class="katex">
+  \[
+10 = 2^3 \times \underline{1} + 2^2 \times \underline{0} + 2^1 \times \underline{1} + 2^0 \times \underline{0}
+\]
+</span>
+
+<p>我用下划线把二进制的 <code>1010</code> 标识出来，这样大家就可以发现二进制和十进制转换时的代数式规律。</p>
+<p>继续回想刚才的场景，那么我们求 <code>x</code> 的 <code>10</code> 次幂，则式子我们可以写成这样：</p>
+
+
+<span class="katex">
+  \[
+x^{10} = x^{2^3 \times 1 + 2^2 \times 0 + 2^1 \times 1 + 2^0 \times 0}=x^{2^3 \times 1}\times x^{2^2 \times 0}\times x^{2^1 \times 1}\times x^{2^0 \times 0}
+\]
+</span>
+
+<p>我们按照二进制低位到高位从左往右交换一下位置：</p>
+
+
+<span class="katex">
+  \[
+x^{10}= (x^{2^0 \times 0})(x^{2^1 \times 1})(x^{2^2 \times 0})(x^{2^3 \times 1})
+\]
+</span>
+
+<p>我们关注相邻的两项，如果我们不考虑幂指数的 <code>*0</code> 和 <code>*1</code> ，我们只看前半部分，会发现有这么一个规律：</p>
+
+
+<span class="katex">
+  \[
+\frac{x^{2^k}}{x^{2^{k-1}}}=\frac{x^{2^{k-1}*2}}{x^{2^{k-1}}}=\frac{(x^{2^{k-1}})^2}{x^{2^{k-1}}}=x^{2^{k-1}}
+\]
+</span>
+
+<p>也就是说，不考虑幂指数的 <code>*0</code> 和 <code>*1</code> 右式，<strong>左式每次只要每次乘以自身，就是下一项的左式</strong>。在我们的例子中其实就是。</p>
+<p>这里我们单独看<strong>第三项和第二项的关系</strong></p>
+
+
+<span class="katex">
+  \[
+x^{2^{2}}=(x^{2^1})^2 
+\]
+</span>
+
+<p>用编程思维来考虑这个问题，只要我们从 <code>x</code> 开始维护这么一个左式，每一次迭代都执行 <code>x *= x</code>，然后每次遇到右边是 <code>*1</code> 的情况，就记录一下 <code>res *= x</code> 是不是就能模拟咱们二进制拆分的计算思路了呢？</p>
+<h2 id="编程实现一下-x-的-10-次方">编程实现一下 x 的 10 次方</h2>
+<p>我们用上面的思路，通过代码<strong>来计算一下 2 的 10 次方，答案应该是 1024</strong>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">int</span> n <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>; <span style="color:#75715e">// 幂指数，下面通过二进制拆分成 1010
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>; <span style="color:#75715e">// 底数
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> res <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">// 累乘的答案
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">while</span> (n) {
+        <span style="color:#75715e">// 去除二进制的最低位，也就是上面推导中的右式，如果 n &amp; 1 == 1，说明是 *1
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (n <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>) {
+            <span style="color:#75715e">// 如果是 *1，则根据我们观察出来的规律，对维护的结果做累乘
+</span><span style="color:#75715e"></span>            res <span style="color:#f92672">*=</span> x;
+        }
+        <span style="color:#75715e">// 转换到下一位
+</span><span style="color:#75715e"></span>        x <span style="color:#f92672">*=</span> x;
+        <span style="color:#75715e">// 二进制右移一位，目的是取到下一个低位二进制
+</span><span style="color:#75715e"></span>        n <span style="color:#f92672">&gt;&gt;=</span> <span style="color:#ae81ff">1</span>;
+    }
+    cout <span style="color:#f92672">&lt;&lt;</span> res <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1024
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>是不是发现非常的简单！我们至此已经实现了快速幂算法。我们将  <code>n</code>, <code>x</code> 做成参数，编写一个快速幂的方法：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">qpow</span>(<span style="color:#66d9ef">int</span> x, <span style="color:#66d9ef">int</span> n) {
+    <span style="color:#66d9ef">int</span> res <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">while</span> (n) {
+        <span style="color:#66d9ef">if</span> (n <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">1</span>) res <span style="color:#f92672">*=</span> x;
+        x <span style="color:#f92672">*=</span> x;
+        n <span style="color:#f92672">&gt;&gt;=</span> <span style="color:#ae81ff">1</span>;
+    }
+    <span style="color:#66d9ef">return</span> res;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    cout <span style="color:#f92672">&lt;&lt;</span> qpow(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">10</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1024
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> qpow(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">2</span>) <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 16
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> qpow(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">3</span>) <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 125
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> qpow(<span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">6</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1000000
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><h2 id="复杂度">复杂度</h2>
+<p>通过上面对幂指数的拆分，发现快速幂只需要循环拆分的项数就可以完成整个幂运算。</p>
+<p>我们不妨设求 x 的 N 次方，<strong>并且令 x 的所有二进制位都为 1</strong>，就可以得到下面这个等式：</p>
+
+
+<span class="katex">
+  \[2^0+2^1+...+2^k=N\]
+</span>
+
+<p>那么其实，k 就是计算机需要计算的次数，也就是时间复杂度。套入公比是 1 的等比数列前 k 项和来反推 k 的大小：</p>
+
+
+<span class="katex">
+  \[
+\frac{a_1(1-q^k)}{1-q}=2^k-1=N \\ k=log_2{N-1} \Rightarrow O(logN)\]
+</span>
+
+<p>好了，这就是快速幂的全部内容了。你可以使用这道题的知识来求解 <a href="%5Bhttps://leetcode-cn.com/classic/problems/super-pow/description/%5D(https://leetcode-cn.com/classic/problems/super-pow/description/)">LeetCode 372. Super Pow</a> 。下一篇文我们来手把手 AC 这题。</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#二进制拆分">二进制拆分</a></li>
+        <li><a href="#编程实现一下-x-的-10-次方">编程实现一下 x 的 10 次方</a></li>
+        <li><a href="#复杂度">复杂度</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="线段树实战要点"><meta property="og:title" content="线段树实战要点" />
+<meta property="og:description" content="在上一公众号中 《用线段树再看 RMQ 问题》，通过区间和的问题场景，已经学习了线段树的基本结构，以及其单点更新和区间查询的操作。但是在解 《LeetCode-307 区域和检索 - 数组可修改》 这道题目的时候，并不是一帆风顺的。所以这一篇文章我们来讨论一下线段树在做题时会遇到的一些坑。
+空间退化问题 在 《LeetCode-307 区域和检索 - 数组可修改》 中，我们会遇到下标索引超出范围的 9/10 的 case。这也就是我们遇到的第一个最直观的坑。
+上文我们说过，线段树是一棵 完美二叉树(Perfect Binary Tree)，可是题目中给出的结点个数不一定是   \(2^N\)  次幂个。所以，这就带来了 空间结构退化的问题。
+这里我们假设 N = 13 这个情况，然后我们通过之前的线段树代码进行代码实现后其结构变成了这样：
+通过上图，我们发现如果我们使用 2N = 26 的数组空间，实际上线段树已经覆盖了下标 31 ，这个场景下我们开 2N 的数组是不够的。
+这里直接说结论：我们对线段树的描述数组开 4N 的空间，是绝对够用的。 具体的证明后续文章中单独写。
+在谈 RMQ 问题 在第一篇文章中，我们讲了区间和的场景，将最重要的向上更新操作 Push Up 也做了介绍，并且给大家留了一道思考题：如何使用线段树来实现 RMQ 问题。
+其实我们只需要修改两个地方：
+ 在向上更新的时候，重新制定规则 - 父结点是两个子节点的大值； 在查询的时候，将结果取递归搜索的大值；  代码如下：
+// 吸取上面的教训，现在我们数组开 4 倍 int tree[maxn &lt;&lt; 2]; void push_up(int rt) { // 父结点是子节点中的最大值  tree[rt] = max(tree[rt &lt;&lt; 1], tree[rt &lt;&lt; 1 | 1]); } int query(int L, int R, int l, int r, int rt) { if (L &lt;= l &amp;&amp; r &lt;= R) { return tree[rt]; } int m = (l &#43; r) &gt;&gt; 1; int ret = 0; // 修改成递归查找区间最大值当做查询结果  if (L &lt;= m) ret = max(ret, query(L, R, l, m, rt &lt;&lt; 1)); if (R &gt; m) ret = max(ret, query(L, R, m &#43; 1, r, rt &lt;&lt; 1 | 1)); return ret; } 其实 RMQ 线段树并没有对线段树结构有任何改变，仅仅是修改了父子结点间的运算规则。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part3/ch02/2-segment-tree-combat/" />
+
+<title>线段树实战要点 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/"class=active>线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>线段树实战要点</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#空间退化问题">空间退化问题</a></li>
+    <li><a href="#在谈-rmq-问题">在谈 RMQ 问题</a></li>
+    <li><a href="#求解逆序数">求解逆序数</a></li>
+    <li><a href="#离散化">离散化</a></li>
+    <li><a href="#优美的-notonlysuccess-写法">优美的 <code>notonlysuccess</code> 写法</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#附录关于线段树开-4n-空间的证明">附录：关于线段树开 4N 空间的证明</a>
+      <ul>
+        <li><a href="#证明">证明</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>线段树实战要点</h1><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/2-segment-tree-combat/title.png" alt="题头"></p>
+<p>在上一公众号中 <a href="https://www.desgard.com/algo/docs/part3/ch02/1-segment-tree-rmq/">《用线段树再看 RMQ 问题》</a>，通过区间和的问题场景，已经学习了线段树的基本结构，以及其单点更新和区间查询的操作。但是在解 <a href="https://leetcode-cn.com/problems/range-sum-query-mutable/">《LeetCode-307 区域和检索 - 数组可修改》</a> 这道题目的时候，并不是一帆风顺的。所以这一篇文章我们来讨论一下线段树在做题时会遇到的一些坑。</p>
+<h1 id="空间退化问题">空间退化问题</h1>
+<p>在 <a href="https://leetcode-cn.com/problems/range-sum-query-mutable/">《LeetCode-307 区域和检索 - 数组可修改》</a> 中，我们会遇到下标索引超出范围的 9/10 的 case。这也就是我们遇到的第一个最直观的坑。</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/2-segment-tree-combat/sg-problem-error.png" alt="刷题遇到的坑"></p>
+<p>上文我们说过，线段树是一棵 <strong>完美二叉树(Perfect Binary Tree)</strong>，可是题目中给出的结点个数不一定是 
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \(2^N\)
+</span>
+ 次幂个。所以，这就带来了 <strong>空间结构退化的问题</strong>。</p>
+<p>这里我们假设 <code>N = 13</code> 这个情况，然后我们通过之前的线段树代码进行代码实现后其结构变成了这样：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/2-segment-tree-combat/sg-space-degradation.png" alt="退化后的空间结构"></p>
+<p>通过上图，我们发现如果我们使用 <code>2N = 26</code> 的数组空间，实际上线段树已经覆盖了下标 <code>31</code> ，这个场景下我们开 <code>2N</code> 的数组是不够的。</p>
+<p>这里直接说结论：<strong>我们对线段树的描述数组开 <code>4N</code> 的空间，是绝对够用的。</strong> 具体的证明后续文章中单独写。</p>
+<h1 id="在谈-rmq-问题">在谈 RMQ 问题</h1>
+<p>在第一篇文章中，我们讲了区间和的场景，将最重要的向上更新操作 Push Up 也做了介绍，并且给大家留了一道思考题：如何使用线段树来实现 RMQ 问题。</p>
+<p>其实我们只需要修改两个地方：</p>
+<ol>
+<li>在向上更新的时候，重新制定规则 - 父结点是两个子节点的大值；</li>
+<li>在查询的时候，将结果取递归搜索的大值；</li>
+</ol>
+<p>代码如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// 吸取上面的教训，现在我们数组开 4 倍
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> tree[maxn <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">2</span>];
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_up</span>(<span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#75715e">// 父结点是子节点中的最大值
+</span><span style="color:#75715e"></span>    tree[rt] <span style="color:#f92672">=</span> max(tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>], tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>]);
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">query</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        <span style="color:#66d9ef">return</span> tree[rt];
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#75715e">// 修改成递归查找区间最大值当做查询结果
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) ret <span style="color:#f92672">=</span> max(ret, query(L, R, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>));
+    <span style="color:#66d9ef">if</span> (R <span style="color:#f92672">&gt;</span> m)  ret <span style="color:#f92672">=</span> max(ret, query(L, R, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>));
+    <span style="color:#66d9ef">return</span> ret;
+}
+</code></pre></div><p><strong>其实 RMQ 线段树并没有对线段树结构有任何改变，仅仅是修改了父子结点间的运算规则。</strong></p>
+<p>这样我们对于线段树的理解又加深了一层，因为“线段”并不仅仅代表着一段的加和，延伸来看，其实对某一块区间有着一定结果的运算规则，就可以使用线段树结构来优化查询和更新效率。</p>
+<h1 id="求解逆序数">求解逆序数</h1>
+<p>这是一个很典型的统计场景，具体的题目是 <a href="https://leetcode-cn.com/problems/reverse-pairs/">《LeetCode-493 翻转对》</a> ，其实就是在大学时《线性代数》课程中的求逆序数。由于在课程题目中，每个数都是有规律的，所以我们根据通项公式或者递推公式就可以求解。但是这道题目是给我们一个任意的数组，不存在数列所具有的特殊性，所以我们只能通过统计的效率来解决这个问题。</p>
+<blockquote>
+<p>逆序数的简单介绍：假设我们有这样一组数 <code>[2, 4, 3, 5, 1]</code>，它有 5 个逆序对，分别是 <code>(2, 1)</code>、<code>(4, 3)</code>、<code>(4, 1)</code>、<code>(3, 1)</code>、<code>(5, 1)</code>，我们要求的答案是，以每个数为首位逆序数的个数，例如上述这组需要输出 <code>[1, 2, 1, 1, 0]</code>。</p>
+</blockquote>
+<p>这种题我们应该如何考虑呢？我们换一个角度考虑，假设我们有一个以正整数范围的空线段树，仍旧是区间和线段树，这棵树的每一个叶子结点记录的是当前下标数字出现的次数。</p>
+<p>我们需要的操作仍旧是 <strong>单点更新</strong> 和 <strong>区间查询</strong>。顺着以下思路来考虑问题：</p>
+<ol>
+<li>构建一个 <code>[1, MAXN]</code> 范围的线段树，所有结点全部填 0。<code>MAXN</code> 代表数组中数字的最大值；</li>
+<li>反向遍历传入的数组；</li>
+<li>遍历到 <code>x</code> 的时候，对线段树做一次 <code>query(1, x - 1)</code> 操作，来记录有多少个比 <code>x</code> 小的数已经出现；</li>
+<li>对线段树执行一次 <code>update(x, num + 1)</code> 操作，让线段树更新 <code>x</code> 的计数，做加 1 操作；</li>
+<li>重复 3-4 操作，每次的 <code>query</code> 结果就是最后数组中对应的每一个值。</li>
+</ol>
+<video src="https://github.com/Desgard/algo/raw/img/img/part3/ch02/2-segment-tree-combat/sg-inverse-order-pari.m4v" width="100%" controls="controls">
+您的浏览器不支持 video 标签。
+</video>
+<p>如上面的动画所示，<code>Nums</code> 的箭头代表遍历情况，<code>Result</code> 数组代表最终的返回结果，右边的操作记录是对线段树的操作 Log。</p>
+<h1 id="离散化">离散化</h1>
+<p>在上面求解逆序对的题目中，其求解的情况是不完整的。因为我们将数组中的数字全部映射到了数组的下标中，但是数组中的每个数字的取值范围是 
+
+<span class="katex">
+  \([-2^{31}, 2^{31}]\)
+</span>
+ ，如果出现负数和零那就无法完成映射了（因为线段树的下标都是正数）。在这种情况下我们要如何解决这个问题呢？</p>
+<p>这里给出这两点思考方向：</p>
+<ol>
+<li>虽然每个数字的取值范围是 
+
+<span class="katex">
+  \([-2^{31}, 2^{31}]\)
+</span>
+，但是给定数组的长度不会超过 <code>50000</code>；</li>
+<li><strong>逆序对只是比较了两个数的大小关系，而不用在意具体的数字是多少</strong>；</li>
+</ol>
+<p>这两点是不是可以理解成，如果我们将这 N 个数，根据大小关系，映射到 <code>[1, 50000]</code> 这个范围内就可以解决问题了？</p>
+<p>例如我们有这么一组数 <code>[-1, -5, 0, 12, 8]</code>，我们先升序排序处理一下 <code>[-5, -1, 0, 8, 12]</code> ，然后做一个 Hash 来映射到整数范围 <code>{-5: 1, -1: 2, 0: 3, 8: 4, 12: 5}</code>。通过 Hash 我们的数组变成了 <code>[2, 1, 3, 5, 4]</code> 。如此我们就可以继续使用上面的思路来求解了。</p>
+<p>是不是这个思路非常巧妙~ 其实这种区间问题只涉及到大小关系的时候，都可以通过这个方法进行数字映射，从而投影到我们可求解的区域内。这种思路就叫做<strong>离散化</strong>。所谓的离散化官方的定义就是：把无限空间中有限的个体映射到有限的空间中去，以此提高算法的时空效率。当我们对这类题目求解的时候，由于我们缩小了求解范围，从而算法的时间常数和空间复杂度都会有所降低，所以离散化也是最容易想到的优化点之一。</p>
+<p>希望大家学习了逆序场景以及离散化的优化思路，可以自行 AC 这道题。另外，<a href="https://leetcode-cn.com/problems/reverse-pairs/">《LeetCode-493 翻转对》</a> 这个题目也可以通过这两个思路来尝试解决一下。</p>
+<h1 id="优美的-notonlysuccess-写法">优美的 <code>notonlysuccess</code> 写法</h1>
+<p><code>notonlysuccess</code> 是一个 ACM-ICPC 的前辈（网络号 id），因为他的线段树代码十分清晰且优雅，所以他的代码经常作为各个参赛选手的模板代码（虽然线段树最后大家都能徒手写出来）。具体何为优雅，下面放上 <code>notonlysuccess</code> 的线段数区间和的代码（其实在我公众号上，所有的代码风格都是在模仿 <code>notonlysuccess</code>，<strong>Respect</strong> ！！）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;cstdio&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 优雅点 1：参数宏定义
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define lson l , m , rt &lt;&lt; 1
+</span><span style="color:#75715e">#define rson m + 1 , r , rt &lt;&lt; 1 | 1
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> maxn <span style="color:#f92672">=</span> <span style="color:#ae81ff">55555</span>;
+<span style="color:#66d9ef">int</span> sum[maxn <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">2</span>];
+
+<span style="color:#75715e">// 优雅点 2：PushUp 抽离
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">PushUP</span>(<span style="color:#66d9ef">int</span> rt) {
+    sum[rt] <span style="color:#f92672">=</span> sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+</span> sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>];
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">build</span>(<span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        scanf(<span style="color:#e6db74">&#34;%d&#34;</span>, <span style="color:#f92672">&amp;</span>sum[rt]);
+        <span style="color:#66d9ef">return</span> ;
+    }
+    <span style="color:#75715e">// 优雅点 3：能用位运算就用位运算
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    build(lson);
+    build(rson);
+    PushUP(rt);
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">update</span>(<span style="color:#66d9ef">int</span> p, <span style="color:#66d9ef">int</span> add, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        sum[rt] <span style="color:#f92672">+=</span> add;
+        <span style="color:#66d9ef">return</span> ;
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">if</span> (p <span style="color:#f92672">&lt;=</span> m) 
+        update(p , add , lson);
+    <span style="color:#66d9ef">else</span> 
+        update(p , add , rson);
+    PushUP(rt);
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">query</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        <span style="color:#66d9ef">return</span> sum[rt];
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) ret <span style="color:#f92672">+=</span> query(L , R , lson);
+    <span style="color:#66d9ef">if</span> (R <span style="color:#f92672">&gt;</span> m)  ret <span style="color:#f92672">+=</span> query(L , R , rson);
+    <span style="color:#66d9ef">return</span> ret;
+}
+</code></pre></div><h1 id="总结">总结</h1>
+<p>这篇文章讲述了在题目实战中使用线段树的一些技巧。包括：</p>
+<ol>
+<li>数组上限大小；</li>
+<li>RMQ 线段树实现方式；</li>
+<li>逆序数使用线段树的求解思路；</li>
+<li>离散化的优化方法；</li>
+<li><code>notonlysuccess</code> 版优雅线段树模板；</li>
+</ol>
+<hr>
+<h1 id="附录关于线段树开-4n-空间的证明">附录：关于线段树开 4N 空间的证明</h1>
+<p>先给出一条待证明的定理：当 
+
+<span class="katex">
+  \(n \geq 3\)
+</span>
+，一个 
+
+<span class="katex">
+  \([1, n]\)
+</span>
+的线段树可以将
+
+<span class="katex">
+  \([1, n]\)
+</span>
+的任意区间
+
+<span class="katex">
+  \([L, R]\)
+</span>
+分解成不超过 
+
+<span class="katex">
+  \(2\lfloor log_2{(n-1)} \rfloor \)
+</span>
+个子区间。</p>
+<h2 id="证明">证明</h2>
+<p>用数学归纳法，证明上面的定理：</p>
+<p>首先,
+
+<span class="katex">
+  \(n=3,4,5\)
+</span>
+时，用穷举法不难证明定理成立。</p>
+<p>假设对于
+
+<span class="katex">
+  \(n= 3,4,5,...,k-1\)
+</span>
+上式都成立，下面来证明对于
+
+<span class="katex">
+  \(n=k (k\geq 6)\)
+</span>
+成立：</p>
+<p>分为 4 种情况来证明：</p>
+<ul>
+<li><strong>情况一</strong></li>
+</ul>
+<p>
+
+<span class="katex">
+  \([L, R]\)
+</span>
+包含根节点
+
+<span class="katex">
+  \((L=1, R=n)\)
+</span>
+，此时，
+
+<span class="katex">
+  \([L, R]\)
+</span>
+被分解成为了一个节点，定理成立。</p>
+<ul>
+<li><strong>情况二</strong></li>
+</ul>
+<p>
+
+<span class="katex">
+  \([L, R]\)
+</span>
+包含根节点的左子节点，此时
+
+<span class="katex">
+  \([L, R]\)
+</span>
+一定不包含根的右子节点（因为如果包含，就可以合并左右子节点，用根节点替代，此时就是情况一）。这时，以右节点为根的这个树的元素个数为 
+
+<span class="katex">
+  \(\lfloor \frac{k}{2} \rfloor \geq 3 \)
+</span>
+</p>
+<p>
+
+<span class="katex">
+  \([L, R] \)
+</span>
+分成的子区间由两部分组成：</p>
+<ol>
+<li>根的左子节点，区间数为 1</li>
+<li>以根的右子节点为根的树种，进行区间查询，这个可以递归使用本定理。</li>
+</ol>
+<p>所以综上， 
+
+<span class="katex">
+  \([L, R] \)
+</span>
+一共被分成了  
+
+<span class="katex">
+  \( 1 + 2\lfloor log_2{(\lfloor \frac{k}{2} \rfloor - 1) \rfloor}  \)
+</span>
+个区间</p>
+<ul>
+<li><strong>情况三</strong></li>
+</ul>
+<p>同情况二对称，不一样的是，以根的左子节点为根的元素个数为  
+
+<span class="katex">
+  \(\lfloor \frac{k + 1}{2} \rfloor \geq 3 \)
+</span>
+。</p>
+<p>
+
+<span class="katex">
+  \([L, R] \)
+</span>
+一共被划分成了 
+
+<span class="katex">
+  \( 1 + 2\lfloor log_2{(\lfloor \frac{k}{2} \rfloor - 1) \rfloor}  \)
+</span>
+ 个区间。</p>
+<p>从公式可以看出，情况二的区间小于等于情况三的区间数，于是只需要证明情况三的区间数符合条件就行。</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned} 
+  & 1 + 2\lfloor log_2{(\lfloor \frac{k + 1}{2} \rfloor - 1) \rfloor} \\
+= & 1 + 2\lfloor log_2{(\lfloor \frac{k + 1}{2} \rfloor) \rfloor} \\
+\leq & 1 + 2\lfloor log_2{(\frac{k + 1}{2}) \rfloor} \\
+= & 1 + 2\lfloor log_2{(k-1)-1} \rfloor \\
+= & 2\lfloor log_2{(k-1)} \rfloor - 1 \\
+< & 2\lfloor log_2{(k-1)} \rfloor
+\end{aligned}
+\]
+</span>
+
+<p>所以，情况二和情况三定理成立。</p>
+<ul>
+<li><strong>情况四</strong></li>
+</ul>
+<p>
+
+<span class="katex">
+  \([L, R]\)
+</span>
+不包括根节点以及根节点的左右子节点。</p>
+<p>于是，剩下的 
+
+<span class="katex">
+  \(2\lfloor log_2{(k-1)} \rfloor\)
+</span>
+ 层，每层最多两个节点。</p>
+<p>所以，
+
+<span class="katex">
+  \([L, R]\)
+</span>
+ 最多被分解成了 
+
+<span class="katex">
+  \(2\lfloor log_2{(k-1)} \rfloor\)
+</span>
+ 个区间，定理成立。</p>
+<ul>
+<li><strong>综上</strong></li>
+</ul>
+<p>综上，当 
+
+<span class="katex">
+  \(n \geq 3\)
+</span>
+，一个 
+
+<span class="katex">
+  \([1, n]\)
+</span>
+的线段树可以将
+
+<span class="katex">
+  \([1, n]\)
+</span>
+的任意区间
+
+<span class="katex">
+  \([L, R]\)
+</span>
+分解成不超过 
+
+<span class="katex">
+  \(2\lfloor log_2{(n-1)} \rfloor \)
+</span>
+个子区间。</p>
+<p>证毕。</p>
+<p>但需要注意的是，
+
+<span class="katex">
+  \(2\lfloor log_2{(n-1)} \rfloor \)
+</span>
+ 是上界，但不是最小上界。所以我们来测试一下 
+
+<span class="katex">
+  \(4n \geq 2\lfloor log_2{(n-1)} \rfloor\)
+</span>
+ 是否成立？</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned} 
+4n & \geq 2\lfloor log_2{(n-1)} \\
+2n & \geq log_2{(n-1)} \\
+4^{n} & \geq n - 1
+\end{aligned}
+\]
+</span>
+
+<p>所以我们发现，当 
+
+<span class="katex">
+  \(n\)
+</span>
+ 取自然数 
+
+<span class="katex">
+  \(1, 2, 3, ...\)
+</span>
+ 均成立。</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#空间退化问题">空间退化问题</a></li>
+    <li><a href="#在谈-rmq-问题">在谈 RMQ 问题</a></li>
+    <li><a href="#求解逆序数">求解逆序数</a></li>
+    <li><a href="#离散化">离散化</a></li>
+    <li><a href="#优美的-notonlysuccess-写法">优美的 <code>notonlysuccess</code> 写法</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#附录关于线段树开-4n-空间的证明">附录：关于线段树开 4N 空间的证明</a>
+      <ul>
+        <li><a href="#证明">证明</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="二分匹配的最大流思维"><meta property="og:title" content="二分匹配的最大流思维" />
+<meta property="og:description" content="在之前的两篇文章中，我们讲述了「最大流问题」和「Ford-Fulkerson 最大流求解方法」，当然在阅读这篇文章之前，我需要你有以上两篇文章的基础，请在阅读上面两篇文章后再来进行阅读。这篇文章我们来讲述一个二分图匹配问题。并且将这个问题转化为最大流问题模型来解决。
+为了引出二分图匹配问题，我们首先给出一个实际问题的例子：
+计算机 CPU 指派问题 在我的 N 核计算机上有 K 个任务。每个任务在工作时都得霸占 CPU 一个完整的核心，并且每个 CPU 核心不是所有任务都能处理，只能处理其中几种任务。我们的问题是在一次处理过程中，最多能够处理的任务数是多少？
+上图中我描述了一组样例，在这组样例中 Task A 只能有 CPU X 和 CPU Y 来处理，Task B 只能由 CPU X 和 CPU Z 来处理，而 Task C 只能有 CPU Y 来处理。
+问题抽象与二分图最大匹配 其实上面对于样例的描述我们已经可以画出一个有向图了。我们将 Task 和 CPU 都转换成图节点：
+我们发现，这个图他可以分成左右两部分，并且左边这些节点相互之间没有相连的边，同样的右边节点也没有相连的边，所有的边都是左右两个部分之间的连接，对于这种特点的图，在图论中有一个专有的名词，二分图。
+而对于这个问题，我们需要求最多有多少个任务可以被处理，也就是说根据关系找到一种 Task 和 CPU 的配对方式，使得配对数量达到最大。这种二分图求最大匹配数量的问题，我们称之为二分图最大匹配问题。
+思考和转化问题 使用结果反向启发 我们可以考虑一种上方样例中的最大匹配方案，如下图所示就是一种情况：
+我们观察一下上面的答案，其实是删除了 A → Y 和 B → X 这两条边。有没有感觉这种删除边的操作我们之前也处理过呢？这里我们从最终的结果出发来启发你的思维，如果你没有发现什么玄机，我们再来做一个新的变化。
+赋权值量化图 第二种变化，我们对于原图的任意一条边增加权值为 1 。
+变化之后，我们只看左右两个部分，此时思考问题的角度就变成了从左边的节点集合到右边节点集合 最多可以保留几条边？换句话说，也就是从左到右流入的最大权值是多少？当然不是任意一条边都能保留，因为每一节点只能有一个出度和一个入度，这个条件也就确保了我们求得的结果是匹配数。
+既然我们需要保证左边集合中，每一个节点有且只有一个出度，而右边的节点有且只有一个入度，那么我们不妨将这个题目再次进行转换，我们将边权值定义为流量容量，且节点也增加权值，且定义为当前节点的流量值。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part4/ch03/3-perfect-matching/" />
+
+<title>二分匹配的最大流思维 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/"class=active>*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>二分匹配的最大流思维</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#计算机-cpu-指派问题">计算机 CPU 指派问题</a></li>
+    <li><a href="#问题抽象与二分图最大匹配">问题抽象与二分图最大匹配</a></li>
+    <li><a href="#思考和转化问题">思考和转化问题</a>
+      <ul>
+        <li><a href="#使用结果反向启发">使用结果反向启发</a></li>
+        <li><a href="#赋权值量化图">赋权值量化图</a></li>
+      </ul>
+    </li>
+    <li><a href="#ff-最大流解决二分图最大匹配问题">FF 最大流解决二分图最大匹配问题</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>二分匹配的最大流思维</h1><p>在之前的两篇文章中，我们讲述了「最大流问题」和「Ford-Fulkerson 最大流求解方法」，当然在阅读这篇文章之前，我需要你有以上两篇文章的基础，请在阅读上面两篇文章后再来进行阅读。这篇文章我们来讲述一个二分图匹配问题。并且将这个问题转化为最大流问题模型来解决。</p>
+<p>为了引出二分图匹配问题，我们首先给出一个实际问题的例子：</p>
+<h1 id="计算机-cpu-指派问题">计算机 CPU 指派问题</h1>
+<p>在我的 N 核计算机上有 K 个任务。每个任务在工作时都得霸占 CPU 一个完整的核心，并且每个 CPU 核心不是所有任务都能处理，只能处理其中几种任务。我们的问题是在一次处理过程中，最多能够处理的任务数是多少？</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-cpu-demo.png" alt="计算机指派问题图抽象"></p>
+<p>上图中我描述了一组样例，在这组样例中 <code>Task A</code> 只能有 <code>CPU X</code> 和 <code>CPU Y</code> 来处理，<code>Task B</code> 只能由 <code>CPU X</code> 和 <code>CPU Z</code> 来处理，而 <code>Task C</code> 只能有 <code>CPU Y</code> 来处理。</p>
+<h1 id="问题抽象与二分图最大匹配">问题抽象与二分图最大匹配</h1>
+<p>其实上面对于样例的描述我们已经可以画出一个有向图了。我们将 Task 和 CPU 都转换成图节点：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-graph-abstruct.png" alt="问题图抽象"></p>
+<p>我们发现，<strong>这个图他可以分成左右两部分，并且左边这些节点相互之间没有相连的边，同样的右边节点也没有相连的边，所有的边都是左右两个部分之间的连接</strong>，对于这种特点的图，在图论中有一个专有的名词，<strong>二分图</strong>。</p>
+<p>而对于这个问题，我们需要求最多有多少个任务可以被处理，也就是说根据关系找到一种 Task 和 CPU 的配对方式，使得配对数量达到最大。这种二分图求最大匹配数量的问题，我们称之为<strong>二分图最大匹配问题</strong>。</p>
+<h1 id="思考和转化问题">思考和转化问题</h1>
+<h2 id="使用结果反向启发">使用结果反向启发</h2>
+<p>我们可以考虑一种上方样例中的最大匹配方案，如下图所示就是一种情况：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-one-sample.png" alt="一组最大匹配方案"></p>
+<p>我们观察一下上面的答案，其实是删除了 A → Y 和 B → X 这两条边。<strong>有没有感觉这种删除边的操作我们之前也处理过呢</strong>？这里我们从最终的结果出发来启发你的思维，如果你没有发现什么玄机，我们再来做一个新的变化。</p>
+<h2 id="赋权值量化图">赋权值量化图</h2>
+<p>第二种变化，我们对于原图的任意一条边增加权值为 1 。</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-edge-data.png" alt="增加边权值"></p>
+<p>变化之后，我们只看左右两个部分，此时思考问题的角度就变成了从<strong>左边的节点集合到右边节点集合 最多可以保留几条边？换句话说，也就是从左到右流入的最大权值是多少？<strong>当然不是任意一条边都能保留，<strong>因为每一节点只能有一个出度和一个入度</strong>，这个条件也就确保了我们求得的结果是</strong>匹配数</strong>。</p>
+<p>既然我们需要保证左边集合中，每一个节点有且只有一个出度，而右边的节点有且只有一个入度，那么我们不妨将这个题目再次进行转换，<strong>我们将边权值定义为流量容量，且节点也增加权值，且定义为当前节点的流量值</strong>。</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-vetex-data.png" alt="多限制源点转换"></p>
+<p>此时，我们将问题 <strong>变成了一个多限制流量源点（A、B、C）多汇点（X、Y、Z）的最大流问题</strong> ！但是我们并不会求多限制源点多汇点的最大流，因为我们没有学过具体的方法。但是我们发现，这些源点流量是被限制的，可不可以通过一个方法让这些点自然带上这些限制的流量？<strong>当然有，加一条有容量的边！</strong></p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/3-perfect-matching/pm-max-flow.png" alt="转换成最大流问题"></p>
+<p>我们在图的两边分别增加了一个超级源 S 和超级汇 T 两个点，其中 S 具有无穷流量。然后分别增加了 S 到 A、B、C 的边，X、Y、Z 到 T 的边，且这些边的容量都是 1。<strong>通过容量我们限制了 A 、B、C 的流量都是 1，并且由于都是以一个单位统计，则流入 T 的流量结果就是最大的匹配数</strong> 。</p>
+<p>此时这个问题已经转化成了之前介绍的 <strong>最大流问题</strong> 。是不是十分神奇呢~</p>
+<h1 id="ff-最大流解决二分图最大匹配问题">FF 最大流解决二分图最大匹配问题</h1>
+<p>经过了一系列花活，我们将二分图最大匹配问题，又转换成了之前的网络流的最大流问题。此时我们掏出之前学习过的 Ford-Fulkerson 最大流求解方法来实现以下即可：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;string&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;vector&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> MAX_V <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e4</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">5</span>;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Edge</span> {
+    <span style="color:#75715e">// 终点、容量、反向边
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> to, cap, rev;
+    Edge(<span style="color:#66d9ef">int</span> _to, <span style="color:#66d9ef">int</span> _cap, <span style="color:#66d9ef">int</span> _rev)<span style="color:#f92672">:</span> to(_to), cap(_cap), rev(_rev) {}
+};
+
+vector<span style="color:#f92672">&lt;</span>Edge<span style="color:#f92672">&gt;</span> G[MAX_V];
+<span style="color:#66d9ef">bool</span> used[MAX_V];
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">add_edge</span>(<span style="color:#66d9ef">int</span> from, <span style="color:#66d9ef">int</span> to, <span style="color:#66d9ef">int</span> cap) {
+    G[from].push_back(Edge(to, cap, G[to].size()));
+    G[to].push_back(Edge(from, <span style="color:#ae81ff">0</span>, G[from].size() <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>));
+}
+
+<span style="color:#75715e">/**
+</span><span style="color:#75715e">*
+</span><span style="color:#75715e">* @param c 当前节点
+</span><span style="color:#75715e">* @param t 汇点
+</span><span style="color:#75715e">* @param f 当前路径中的容量最小值
+</span><span style="color:#75715e">* @return
+</span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">dfs</span>(<span style="color:#66d9ef">int</span> c, <span style="color:#66d9ef">int</span> t, <span style="color:#66d9ef">int</span> f) {
+    <span style="color:#66d9ef">if</span> (c <span style="color:#f92672">==</span> t) {
+        <span style="color:#66d9ef">return</span> f;
+    }
+    used[c] <span style="color:#f92672">=</span> true;
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> G[c].size(); <span style="color:#f92672">++</span> i) {
+        Edge <span style="color:#f92672">&amp;</span>e <span style="color:#f92672">=</span> G[c][i];
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>used[e.to] <span style="color:#f92672">&amp;&amp;</span> e.cap <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+            <span style="color:#66d9ef">int</span> d <span style="color:#f92672">=</span> dfs(e.to, t, min(f, e.cap));
+            <span style="color:#66d9ef">if</span> (d <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+                e.cap <span style="color:#f92672">-=</span> d;
+                G[e.to][e.rev].cap <span style="color:#f92672">+=</span> d;
+                <span style="color:#66d9ef">return</span> d;
+            }
+        }
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// A, B, C 为节点 0, 1, 2
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// X, Y, Z 为节点 3, 4, 5
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// S, T 为节点 6, 7
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 题目描述的 A, B, C 和 X, Y, Z 的关系
+</span><span style="color:#75715e"></span>    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">1</span>);
+
+    <span style="color:#75715e">// 模拟超级源 S 点
+</span><span style="color:#75715e"></span>    add_edge(<span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>);
+
+    <span style="color:#75715e">// 模拟超级汇 T 点
+</span><span style="color:#75715e"></span>    add_edge(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">1</span>);
+
+    <span style="color:#75715e">// 求最大流
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> flow <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">for</span> (;;) {
+        memset(used, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(used));
+        <span style="color:#66d9ef">int</span> f <span style="color:#f92672">=</span> dfs(<span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">1</span>);
+        <span style="color:#66d9ef">if</span> (f <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {
+            cout <span style="color:#f92672">&lt;&lt;</span> flow <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 3 验证通过
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+        }
+        flow <span style="color:#f92672">+=</span> f;
+    }
+}
+</code></pre></div><h1 id="总结">总结</h1>
+<p>网络流的神奇之处就在于，我们可以将其他类型的题目通过图抽象、加点权约束，从而转换成网络流中的经典问题。这篇将 <strong>二分图最大匹配</strong> 转换成 <strong>最大流问题</strong> 的思维过程，想必会让你对图算法又了新的认识。算法题目的考察从广义上来讲，就是在考察你 <strong>是否能将这个问题对应到一个你熟悉的求解模型和方法上</strong> ，如果你抽象得当，你就可以利用已有的算法，去高效的求解这个问题。</p>
+<p>“万物皆可网络流”，真正有趣的才刚刚开始！</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#计算机-cpu-指派问题">计算机 CPU 指派问题</a></li>
+    <li><a href="#问题抽象与二分图最大匹配">问题抽象与二分图最大匹配</a></li>
+    <li><a href="#思考和转化问题">思考和转化问题</a>
+      <ul>
+        <li><a href="#使用结果反向启发">使用结果反向启发</a></li>
+        <li><a href="#赋权值量化图">赋权值量化图</a></li>
+      </ul>
+    </li>
+    <li><a href="#ff-最大流解决二分图最大匹配问题">FF 最大流解决二分图最大匹配问题</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="扩展欧几里得算法"><meta property="og:title" content="扩展欧几里得算法" />
+<meta property="og:description" content="一道头条的笔试题 上个月在脉脉上看到一道头条校招的笔试题，看评论说是“地狱难度”的，我们通过这道题来延伸说一下。先来看下这题的题面：
+有一台用电容组成的计算器，其中每个电容组件都有一个最大容量值（正整数）。
+对于单个电容，有如下操作指令：
+指令1：放电操作-把该电容当前电量值清零；
+指令2：充电操作-把该电容当前电量补充到最大容量值；
+指令3：转移操作-从电容 A 中尽可能多的将电量转移到电容 B ，转移不会有电量损失，如果能够充满 B 的最大容量，那剩余的电量仍然会留在 A 中。
+现在已知有两个电容，其最大容量分别为 a 和 b，其初始状态都是电量值为 0，希望通过一些列的操作可以使其中某个电容（无所谓哪一个）中的电量值等于 c （c也是正整数），这一些列操作所用的最少指令条数记为 M，如果无论如何操作，都不可能完成，则定义此时 M= 0。
+显然对于每一组确定的 a，b，c，一定会有一个 M 与之对应。
+ 这里需要输入的是 a、b、c ，给出两个样例，例如 a = 3, b = 4, c = 2 ，则最少需要 4 个指令完成。解释：设最大容量为 3 的是 A 号电容，另一个是 B 号电容，对应的操作是 （充电 A）=&gt; （转移 A -&gt; B） =&gt; （充电 A）=&gt; （转移 A -&gt; B） ，这样 A 就是目标的 2 电量。第二个样例 a = 2, b = 3, c = 4，由于 a 和 b 都无法到大目标电量 4，所以输出 0 代表无解。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part2/ch02/3-ext-euclidean/" />
+
+<title>扩展欧几里得算法 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/"class=active>*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>扩展欧几里得算法</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#一道头条的笔试题">一道头条的笔试题</a></li>
+        <li><a href="#简要分析">简要分析</a></li>
+        <li><a href="#扩展欧几里得算法extended-euclidean">扩展欧几里得算法（<em>Extended Euclidean</em>）</a>
+          <ul>
+            <li><a href="#丢番图方程diophantine-equation">丢番图方程（Diophantine Equation）</a></li>
+            <li><a href="#裴蜀定理bézouts-identity">裴蜀定理（Bézout&rsquo;s identity）</a></li>
+            <li><a href="#辗转相除法实现扩展欧几里得算法">辗转相除法实现扩展欧几里得算法</a></li>
+          </ul>
+        </li>
+        <li><a href="#扩展欧几里得算法证明">扩展欧几里得算法证明</a></li>
+        <li><a href="#代码实现扩展欧几里得算法">代码实现扩展欧几里得算法</a></li>
+        <li><a href="#小结">小结</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>扩展欧几里得算法</h1><h2 id="一道头条的笔试题">一道头条的笔试题</h2>
+<p>上个月在脉脉上看到一道头条校招的笔试题，看评论说是“地狱难度”的，我们通过这道题来延伸说一下。先来看下这题的题面：</p>
+<blockquote class="book-hint info">
+  <p>有一台用电容组成的计算器，其中每个电容组件都有一个最大容量值（正整数）。</p>
+<p>对于单个电容，有如下操作指令：</p>
+<p>指令1：放电操作-把该电容当前电量值清零；</p>
+<p>指令2：充电操作-把该电容当前电量补充到最大容量值；</p>
+<p>指令3：转移操作-从电容 A 中尽可能多的将电量转移到电容 B ，转移不会有电量损失，如果能够充满 B 的最大容量，那剩余的电量仍然会留在 A 中。</p>
+<p>现在已知有两个电容，其最大容量分别为 a 和 b，其初始状态都是电量值为 <code>0</code>，希望通过一些列的操作可以使其中某个电容（无所谓哪一个）中的电量值等于 <code>c</code> （<code>c</code>也是正整数），这一些列操作所用的最少指令条数记为 <code>M</code>，如果无论如何操作，都不可能完成，则定义此时 <code>M= 0</code>。</p>
+<p>显然对于每一组确定的 <code>a</code>，<code>b</code>，<code>c</code>，一定会有一个 <code>M</code> 与之对应。</p>
+
+</blockquote>
+
+<p>这里需要输入的是 <code>a</code>、<code>b</code>、<code>c</code> ，给出两个样例，例如 <code>a = 3, b = 4, c = 2</code> ，则最少需要 <code>4</code> 个指令完成。解释：设最大容量为 3 的是 A 号电容，另一个是 B 号电容，对应的操作是 <code>（充电 A）=&gt; （转移 A -&gt; B） =&gt; （充电 A）=&gt; （转移 A -&gt; B）</code> ，这样 A 就是目标的 <code>2</code> 电量。第二个样例 <code>a = 2, b = 3, c = 4</code>，由于 a 和 b 都无法到大目标电量 4，所以输出 0 代表无解。</p>
+<p>这道题我们拿到以后，第一反应就是模拟三个指令，然后使用 BFS 广度优先搜索来搜出答案，只要任意情况到达目标的 c 值就停下来。但是题目中给出了数据量 
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \(0 \leq a, b, c \leq 10^9\)
+</span>
+ ，这个数据量约束了我们无法使用暴力搜索来求解。</p>
+<h2 id="简要分析">简要分析</h2>
+<p>首先从笔试的角度来分析，由于笔试时会有数据范围的测试，这道题给出的数据范围大概是这样：</p>
+<pre><code>0 &lt; a, b, c &lt; 10^5 (50%)
+0 &lt; a, b, c &lt; 10^7 (30%)
+0 &lt; a, b, c &lt; 10^9 (20%)
+</code></pre><p>所以如果没有任何的思路和数论基础，我建议使用 BFS 直接写一版暴力，最少可以通过 
+
+<span class="katex">
+  \(> 50\%\)
+</span>
+ 的数据，从而拿到一定的分数。（其实这就是 OI 得分赛制，没有思路先暴力抢分）。</p>
+<p>下面我们来分情况讨论这个问题：</p>
+<p><strong>情况一</strong></p>
+<p>样例已经给出了一种边界情况，即当 
+
+<span class="katex">
+  \(c > max(a, b)\)
+</span>
+ ，这种情况是无法使得 A 和 B 的电量达到 c 的。直接输出 0。</p>
+<p><strong>情况二</strong></p>
+<p>还有一种我们可以直接想到的情况，当 <code>a = c</code> 或者 <code>b = c</code> 的时候，只进行一次充电操作就可以完成，直接输出 1。</p>
+<p><strong>情况三</strong></p>
+<p>接下来我们考虑一般情况，即需要满足以下前提条件：</p>
+
+
+<span class="katex">
+  \[
+c < max(a, b) \\ c \neq min(a, b)
+\]
+</span>
+
+<p>我们将这个问题换一个思路转化一下假设给出的 <code>a</code> 、<code>b</code>、 <code>c</code> 一定有解，那么我们来设置对 A 做了 x 次的充（放）电，对 B 做了 y 次的充（放）电，并且做了 k 次的操作三。如果将 A、B 当做一个大电容来看这个电容只有充放电 a 单位、充放电 b 单位这 4 种操作。那么我们就可以列出一个关系式：</p>
+
+
+<span class="katex">
+  \[
+ax+by=c
+\]
+</span>
+
+<p>由于 <code>a</code>、<code>b</code> 为非负整数，又因为前提条件 
+
+<span class="katex">
+  \(c < max(a, b)\)
+</span>
+ ，则 <code>x</code> 和 <code>y</code> 符号相反。</p>
+<p>暂且，我们先不管做了几次操作三，先只考虑充放电问题，那其实就是已知 <code>a</code>、<code>b</code>、<code>c</code>，我们在给定范围内求解 <code>x</code> 和 <code>y</code> 的解就可以了。那么这个问题我们要如何求解呢？这就是<strong>扩展欧几里得算法所要解决的问题</strong>。</p>
+<h2 id="扩展欧几里得算法extended-euclidean">扩展欧几里得算法（<em>Extended Euclidean</em>）</h2>
+<p>在推导上述问题的求解算法之前，我们需要先了解以下几个概念知识。</p>
+<h3 id="丢番图方程diophantine-equation">丢番图方程（Diophantine Equation）</h3>
+<p>丢番图方程指的是：未知数个数多于方程个数，且未知数只能是整数的整数系数方程或方程组。例如以下式中，
+
+<span class="katex">
+  \(a, b, c\)
+</span>
+ 都为整数:</p>
+
+
+<span class="katex">
+  \[
+a_1x_1^{b_1}+a_2x_2^{b_2}+......+a_nx_n^{b_n}=c
+\]
+</span>
+
+<blockquote>
+<p>关于代数学鼻祖<strong>丢番图</strong>（<strong>Diophantus</strong>）除了有《算数》这本开山巨作之外，还有一个好玩的数学题目墓志铭，有兴趣可以自己了解。</p>
+</blockquote>
+<h3 id="裴蜀定理bézouts-identity">裴蜀定理（Bézout&rsquo;s identity）</h3>
+<p>在数论中，裴蜀定理是一个关于最大公约数的定理。这个定理说明了对于任意整数 a、b 和他们的最大公约数 <code>d</code>，关于未知数 <code>x</code> 和 <code>y</code> 的线性丢番图方程：</p>
+
+
+<span class="katex">
+  \[
+ax+by=m
+\]
+</span>
+
+<p>有解，当且仅当 <code>m</code> 是 <code>d</code> 的倍数时。这个等式也被称为裴蜀等式。</p>
+<p>裴蜀等式有解时必然有无穷多个整数解，每组解 <code>x</code> 、<code>y</code> 都称之为裴蜀数，可用辗转相除法求得。</p>
+<h3 id="辗转相除法实现扩展欧几里得算法">辗转相除法实现扩展欧几里得算法</h3>
+<p>既然说可以用辗转相除法来解决这个问题，那么我们先来说明一下如何通过辗转相除法来求二元一次线性丢番图方程。</p>
+<p><strong>辗转相除法过程</strong></p>
+<p>以 <code>23x + 17y = 1</code> 为例，我们来求 <code>GCD(23, 17)</code>：</p>
+
+
+<span class="katex">
+  \[
+23 = 17 \times 1 + 6\\ 17 = 6 \times 2 + 5 \\ 6 = 5 \times 1 + 1 \\ 5= 1 \times 5 + 0 \\1 = 0 \times0+1
+\]
+</span>
+
+<p><strong>改写成余数形式</strong></p>
+<p>将等式右边的第一项移项：</p>
+
+
+<span class="katex">
+  \[
+23 \times1+17\times -1=6 \ \ \ \ \ \ (1) \\ 17 \times 1 + 6 \times -2=5 \ \ \ \ \ \ \ \ (2)\\ 6 \times 1 + 5 \times -1 = 1\ \ \ \ \ \ \ \ \ \ (3) 
+\]
+</span>
+
+<p><strong>反向带入原式</strong></p>
+<p>带下划线的 <code>6</code> 和 <code>5</code> 会使用 <code>(1)</code> 和 <code>(2)</code> 两个式子反向带入，形同换元：</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned} 1 =\  & \underline{6} \times 1 + \underline{5} \times -1 \\ =\ & (1) \times 1 + (2) \times -1 \\ =\ & (23 \times 1 + 17 \times -1) + [17 \times 1 + (23 \times 1 + 17 \times -1)\times -2]\times-1 \\ =\  & 23 \times 3+17 \times -4 \\ =\ & 23x+17y \end{aligned}
+\]
+</span>
+
+<p>所以反解得，<code>x = 3, y = -4</code> 是上述二元一次线性丢番图方程的一组解。</p>
+<h2 id="扩展欧几里得算法证明">扩展欧几里得算法证明</h2>
+<p>来观察一下辗转相除法的最后两个式子，终止条件是：</p>
+<p>$$5= 1 \times 5 + 0 \ 5=0 \times 5+5$$</p>
+<p>当且仅当第二个式子为 <code>0</code> 的时候停止这个递归运算。如何延伸到一般情况呢？我们将待求变量设为字母来尝试一下。假设此时，我们要求 <code>an</code> 和 <code>bn</code> 为系数的二元一次线性丢番图方程的系数，即待求方程：</p>
+<p>$$a_nx+b_ny=gcd(a_n, b_n)$$</p>
+<p>根据上述的改写余数形式，我们可以列出式一（<code>|</code> 是整除的意思）：</p>
+<p>$$\begin{aligned}a_0 \times 1 - b_0 \times (a_0|b_0) =a_0\ mod\ b_0\end{aligned}$$</p>
+<p>假设未到达最终的终止条件，则有：</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned}a_1 \times 1 - b_1 \times (a_1|b_1) =a_1\ mod\ b_1\end{aligned}
+\]
+</span>
+
+<p>第二个式子中我们可以发现：</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned}a_1&=b_0 \\ b_1&=a_0 \ mod \ b_0=a_0 \times 1 - b_0 \times (a_0|b_0)\end{aligned}
+\]
+</span>
+
+<p>同理，第 n 个式子中有：</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned}a_n \times 1 - b_n \times (a_n|b_n) &=a_n\ mod\ b_n\\a_{n}&=b_{n-1} \\ b_{n}&=a_{n-1} \times 1 - b_{n - 1} \times (a_{n-1} | b_{n-1}) = a_{n-1}\ mod \ b_{n -1}\end{aligned}
+\]
+</span>
+
+<p>根据辗转相除的规则，我们知道第 0 项中 
+
+<span class="katex">
+  \(b = 0, a = 1\)
+</span>
+ ，而我们要求的是第 <code>n</code> 项中的 <code>a</code> 和 <code>b</code>，所以可以通过 <code>a</code> 和 <code>b</code> 的递推公式逐一推导而来。</p>
+<p><strong>如此我们证明了 <code>an</code> 和 <code>bn</code> 的递推关系，下面我们来证明 <code>xn</code> 的递推关系。</strong></p>
+
+
+<span class="katex">
+  \[
+\begin{aligned} a_0x_0+b_0y_0&=gcd(a_0, b_0)\\ a_1x_1+b_1y_1&=gcd(a_1, b_1)\end{aligned}
+\]
+</span>
+
+<p>由上文证得了：</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned}\\a_{1}&=b_{0} \\ b_{1}&=a_{0} \times 1 - b_{0} \times (a_{0} | b_{0}) = a_{0}\ mod \ b_{0}\end{aligned}
+\]
+</span>
+
+<p>我们将其带入到第一个式子中：</p>
+
+
+<span class="katex">
+  \[
+b_0x_1+(a_0\ mod\ b_0)y_1=gcd(a_1, b_1) 
+\]
+</span>
+
+
+
+<span class="katex">
+  \[
+b_0x_1+[a_0\times 1 - b_0\times(a_0|b_0)]y_1=gcd(a_1, b_1)
+\]
+</span>
+
+<p>所以可以求得：</p>
+
+
+<span class="katex">
+  \[
+a_0y_1-b_0[x_1-y_1(a_0|b_0)]=gcd(a_1, b_1)
+\]
+</span>
+
+<p>由于辗转相除的推论我们可得：</p>
+
+
+<span class="katex">
+  \[
+gcd(a_1, b_1)=gcd(a_0, b_0)
+\]
+</span>
+
+<p>所以：</p>
+
+
+<span class="katex">
+  \[
+a_0y_1-b_0[x_1-y_1(a_0|b_0)]=a_0x_0+b_0y_0
+\]
+</span>
+
+<p>即：</p>
+
+
+<span class="katex">
+  \[
+\begin{aligned}x_0&=y_1 \\ y_0&=x_1-y_1(a_0|b_0)\end{aligned}
+\]
+</span>
+
+<h2 id="代码实现扩展欧几里得算法">代码实现扩展欧几里得算法</h2>
+<p>为了实现上述的反向带入原式的过程，我们通过递归递归到最深的一层，将每一层的解带入即可完成最终的求解：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e"># python</span>
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">ex_gcd</span>(a, b):
+      <span style="color:#66d9ef">if</span> b <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>:
+          <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>, a
+      <span style="color:#66d9ef">else</span>:
+          x, y, r <span style="color:#f92672">=</span> ex_gcd(b, a <span style="color:#f92672">%</span> b) 
+          x, y <span style="color:#f92672">=</span> y, (x <span style="color:#f92672">-</span> (a <span style="color:#f92672">//</span> b) <span style="color:#f92672">*</span> y)
+          <span style="color:#66d9ef">return</span> x, y, r
+</code></pre></div><p>但是我们注意到，由于裴蜀定理，我们求解的丢番图方程中，等号右边的常数必须是 
+
+<span class="katex">
+  \(k \times gcd(a, b)\)
+</span>
+。所以我们的求解其实是：</p>
+
+
+<span class="katex">
+  \[
+ax+by=gcd(a, b)\times k = c
+\]
+</span>
+
+<p>所以通过扩展 GCD 算法求得的 <code>x0</code> 和 <code>y0</code> 这组解，并不是我们要求的最终解。同样的，我们对其扩大 k 倍就是我们想要对结果：</p>
+
+
+<span class="katex">
+  \[
+x =k·x_0= x_0 \times \frac{c}{gcd(a, b)} \\y = k·y_0= y_0 \times \frac{c}{gcd(a, b)}
+\]
+</span>
+
+<h2 id="小结">小结</h2>
+<p>有了这些知识，你对那道“地狱难度”的头条面试题有没有更多的想法呢？这里有一道 <strong>[LeetCode-365] 水壶问题</strong> 你可以尝试一下，做完之后想必会对扩展 GCD 算法有更深的理解。</p>
+<p>至于头条面试题，我将在下一篇文继续讲述并代码实现此题的解法。</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#一道头条的笔试题">一道头条的笔试题</a></li>
+        <li><a href="#简要分析">简要分析</a></li>
+        <li><a href="#扩展欧几里得算法extended-euclidean">扩展欧几里得算法（<em>Extended Euclidean</em>）</a>
+          <ul>
+            <li><a href="#丢番图方程diophantine-equation">丢番图方程（Diophantine Equation）</a></li>
+            <li><a href="#裴蜀定理bézouts-identity">裴蜀定理（Bézout&rsquo;s identity）</a></li>
+            <li><a href="#辗转相除法实现扩展欧几里得算法">辗转相除法实现扩展欧几里得算法</a></li>
+          </ul>
+        </li>
+        <li><a href="#扩展欧几里得算法证明">扩展欧几里得算法证明</a></li>
+        <li><a href="#代码实现扩展欧几里得算法">代码实现扩展欧几里得算法</a></li>
+        <li><a href="#小结">小结</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

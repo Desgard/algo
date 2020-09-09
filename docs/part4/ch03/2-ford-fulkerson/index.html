@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Ford-Fulkerson 最大流求解方法"><meta property="og:title" content="Ford-Fulkerson 最大流求解方法" />
+<meta property="og:description" content="在上一节《初识最大流问题》中，已经讲到了网络流中的一个经典问题 - 最大流问题。同上一篇的方式一样，这篇文章你要带着以下两个问题来阅读：
+ 怎样搜索到一条增广路？ 如何利用搜索到的增广路求解最大流问题？ Ford-Fulkerson 算法求最大流的原理是什么？  如何求得最大流 我们继续引用上文的例子：
+ 假设有这么一个例子，这次 2019-nCoV 疫情让口罩变成了稀缺资源。所以，全国各地都在为武汉捐献物资。假设现在因为种种原因，我们只能通过地面线路来运输口罩物资，并且每一条线路是有流量限制的。假设不考虑运输速度，并且源点 S （杭州）的口罩物资产量是足够多的，我们需要求解汇点 T（武汉）在不计速度的情况下能收到多少物资？
+ 首先我们拍脑袋来自己探索一个算法，计算最大流。
+我们的目标是找到增广路，所以我们制定一个策略：通过 DFS 深度优先搜索，来检索一条增光路，然后计算从 S 到 T 的最大流量，并在所有的边流量容量中将其扣除。反复按照这种操作，来迭代我们每次扣除之后的残余网络，最后无法再找到增广路则停止搜索，求得我们的“最大流”。
+我们来做一个动图来描述一下这个过程：
+您的浏览器不支持 video 标签。  这个动图中描述的算法包括以下三步：
+ 搜索出一条增广路； 在这条路径中所有的边容量减去这条增广路的流量，如果容量为 0 则拆边； 返回操作一，如果没有增广路则得到答案。  在这道例题中，我负责任的告诉你，答案确实是最大流 23。但是求解的过程是错的！ 为什么会造成过程是错的，但是答案是对的的情况？原因是因为这个流网络的最大流刚好是我们这种做法所得到的答案。那正确的解法应该是怎样的？我们在来看一个图：
+我们按照上文的方法来求解一下最大流。
+我们通过上述的三步流程进行演算，最终获得的残余网络如上，求得最大流是 10。
+但是我在这里再次负责的告诉你，**这个结果是不正确的！**理由如下：
+按照这种方式来处理流量，可以获得最大流 11 的答案，这是更优的结果。由此我们证明了上述我们自己构造的算法是有问题的。可是问题出在哪呢？我们对比一下两张图的流量差：
+通过对比流量差，我们 发现其中 1 → 2 会通过将流量推回这种操作，从而得到新的流 。为什么要这么做呢？其实原因就是 因为对一条增广路不一定输入这条增广路的上限流量就能保证全局的最大流量 。再提高一个维度来看我们之前的思路，其实一直是“贪心”思想在引导我们加流和拆边操作，但是贪心并不能获得全局最大流量，这也是之前动态规划能够解决贪心对于全局最优解无法实现的问题 。
+既然我们无法得知如何取得全局最优解，有一种思路就是，继续增加可能情况。具体怎么加，其实只要对上面错误算法增加一个操作就可以：在第 2 步中，在边权减去流量之后，并对这条边再做一条反向边，并且容量变成对应消耗流量的相反数 。接着用图来解释：
+通过上述操作，我们又多找出了一条增广路（即图中红色的那条路），并且为 T 多增加了 1 个单位的流量，如此求得了最后的答案是 11。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part4/ch03/2-ford-fulkerson/" />
+
+<title>Ford-Fulkerson 最大流求解方法 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/"class=active>*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Ford-Fulkerson 最大流求解方法</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#如何求得最大流">如何求得最大流</a></li>
+    <li><a href="#如何代码实现查找增广路">如何代码实现查找增广路？</a></li>
+    <li><a href="#复杂度分析">复杂度分析</a></li>
+    <li><a href="#一些边沿知识">一些边沿知识</a></li>
+    <li><a href="#ford-fulkerson-方法的-代码实现"><strong>Ford-Fulkerson 方法的</strong> 代码实现</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>Ford-Fulkerson 最大流求解方法</h1><p>在上一节《初识最大流问题》中，已经讲到了网络流中的一个经典问题 - 最大流问题。同上一篇的方式一样，这篇文章你要带着以下两个问题来阅读：</p>
+<ul>
+<li>怎样搜索到一条增广路？</li>
+<li>如何利用搜索到的增广路求解最大流问题？</li>
+<li>Ford-Fulkerson 算法求最大流的原理是什么？</li>
+</ul>
+<h1 id="如何求得最大流">如何求得最大流</h1>
+<p>我们继续引用上文的例子：</p>
+<blockquote>
+<p>假设有这么一个例子，这次 2019-nCoV 疫情让口罩变成了稀缺资源。所以，全国各地都在为武汉捐献物资。假设现在因为种种原因，我们只能通过地面线路来运输口罩物资，并且每一条线路是有流量限制的。假设不考虑运输速度，并且源点 S （杭州）的口罩物资产量是足够多的，我们需要求解汇点 T（武汉）在不计速度的情况下能收到多少物资？</p>
+</blockquote>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-first-problem.png" alt="例题模型"></p>
+<p>首先我们拍脑袋来自己探索一个算法，计算最大流。</p>
+<p>我们的目标是找到增广路，所以我们制定一个策略：<strong>通过 DFS 深度优先搜索，来检索一条增光路，然后计算从 S 到 T 的最大流量，并在所有的边流量容量中将其扣除</strong>。反复按照这种操作，来迭代我们每次扣除之后的残余网络，<strong>最后无法再找到增广路则停止搜索</strong>，求得我们的“最大流”。</p>
+<p>我们来做一个动图来描述一下这个过程：</p>
+<video src="https://github.com/Desgard/algo/raw/img/img/part4/ch03/2-ford-fulkerson/ff-greedy-algorithm.m4v" width="100%" controls="controls">
+您的浏览器不支持 video 标签。
+</video>
+<p>这个动图中描述的算法包括以下三步：</p>
+<ol>
+<li>搜索出一条增广路；</li>
+<li>在这条路径中所有的边容量减去这条增广路的流量，如果容量为 0 则拆边；</li>
+<li>返回操作一，如果没有增广路则得到答案。</li>
+</ol>
+<p>在这道例题中，我负责任的告诉你，答案确实是最大流 23。<strong>但是求解的过程是错的！</strong> 为什么会造成过程是错的，但是答案是对的的情况？原因是因为这个流网络的最大流刚好是我们这种做法所得到的答案。那正确的解法应该是怎样的？我们在来看一个图：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-2nd-problem.png" alt="第二个例子"></p>
+<p>我们按照上文的方法来求解一下最大流。</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-greedy-max-flow-answer.png" alt="使用贪心法答案"></p>
+<p>我们通过上述的三步流程进行演算，最终获得的残余网络如上，求得最大流是 10。</p>
+<p>但是我在这里再次负责的告诉你，**这个结果是不正确的！**理由如下：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-real-max-flow-answer.png" alt="真实答案"></p>
+<p>按照这种方式来处理流量，可以获得最大流 11 的答案，这是更优的结果。由此我们证明了上述我们自己构造的算法是有问题的。可是问题出在哪呢？我们对比一下两张图的流量差：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-detal-flow.png" alt="流量差"></p>
+<p>通过对比流量差，我们 <strong>发现其中 1 → 2 会通过将流量推回这种操作，从而得到新的流</strong> 。为什么要这么做呢？其实原因就是 <strong>因为对一条增广路不一定输入这条增广路的上限流量就能保证全局的最大流量</strong> 。再提高一个维度来看我们之前的思路，<strong>其实一直是“贪心”思想在引导我们加流和拆边操作，但是贪心并不能获得全局最大流量，这也是之前动态规划能够解决贪心对于全局最优解无法实现的问题</strong> 。</p>
+<p>既然我们无法得知如何取得全局最优解，有一种思路就是，<strong>继续增加可能情</strong>况。具体怎么加，其实只要对上面错误算法增加一个操作就可以：<strong>在第 2 步中，在边权减去流量之后，并对这条边再做一条反向边，并且容量变成对应消耗流量的相反数</strong> 。接着用图来解释：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-reverse-edge.png" alt="反向边建立流程"></p>
+<p>通过上述操作，我们又多找出了一条增广路（即图中红色的那条路），并且为 T 多增加了 1 个单位的流量，如此求得了最后的答案是 11。</p>
+<p>可能你会问，为什么这种做法是合理的，可以求得最终的结果呢？其实就涉及到我们上一篇所讲的 <a href="http://www.desgard.com/algo/docs/part4/ch03/1-maximum-flow-basic/#%E6%9C%80%E5%B0%8F%E5%89%B2%E6%9C%80%E5%A4%A7%E6%B5%81%E5%AE%9A%E7%90%86">「最大流最小割定理」</a>，这个证明我后续会放到 PC 端小册上，因为它属于延伸知识。而对于不想看枯燥的证明过程的朋友来说，你只要想明白这件事就可以了，看下图：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-vetex-state.png" alt="正确的流量分配"></p>
+<p>以上，我们知道了怎么去求得最短路，下面来总结一下梳理后的算法：</p>
+<ol>
+<li>搜索出一条增广路；</li>
+<li>在这条路径中所有的边容量减去这条增广路的流量，<strong>并建立流量为增广路增加流量相反数的反向边</strong>；</li>
+<li>返回操作一，如果没有增广路则得到答案。</li>
+</ol>
+<p>这也就是本文标题中的 <strong>Ford-Fulkerson  最大流方法。</strong></p>
+<h1 id="如何代码实现查找增广路">如何代码实现查找增广路？</h1>
+<p>在这篇文章中，我们均使用 DFS 深度优先搜索来寻找增广路。这里直接给出代码：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">/**
+</span><span style="color:#75715e">  * 查找增广路
+</span><span style="color:#75715e">  * @param c 当前节点
+</span><span style="color:#75715e">  * @param t 汇点
+</span><span style="color:#75715e">  * @param f 当前路径中的容量最小值
+</span><span style="color:#75715e">  * @return
+</span><span style="color:#75715e">  */</span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">dfs</span>(<span style="color:#66d9ef">int</span> c, <span style="color:#66d9ef">int</span> t, <span style="color:#66d9ef">int</span> f) {
+    <span style="color:#75715e">// 如果当前节点是汇点 t，直接返回容量最小值，即增广路增加的流量
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (c <span style="color:#f92672">==</span> t) {
+        <span style="color:#66d9ef">return</span> f;
+    }
+    <span style="color:#75715e">// 记忆化搜索染色
+</span><span style="color:#75715e"></span>    used[c] <span style="color:#f92672">=</span> true;
+    <span style="color:#75715e">// 遍历 c 节点下一个节点
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> G[c].size(); <span style="color:#f92672">++</span> i) {
+        Edge <span style="color:#f92672">&amp;</span>e <span style="color:#f92672">=</span> G[c][i];
+        <span style="color:#75715e">// 如果这个节点未被访问到，并且其当前容量大于 0
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>used[e.to] <span style="color:#f92672">&amp;&amp;</span> e.cap <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+            <span style="color:#75715e">// 访问到最深层节点
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">int</span> d <span style="color:#f92672">=</span> dfs(e.to, t, min(f, e.cap));
+            <span style="color:#66d9ef">if</span> (d <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+                <span style="color:#75715e">// 当前边容器减少
+</span><span style="color:#75715e"></span>                e.cap <span style="color:#f92672">-=</span> d;
+                <span style="color:#75715e">// 反向边容量增加
+</span><span style="color:#75715e"></span>                G[e.to][e.rev].cap <span style="color:#f92672">+=</span> d;
+                <span style="color:#66d9ef">return</span> d;
+            }
+        }
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>其实这段代码也就是 <strong>Ford-Fulkerson 最大流方法</strong> 的核心代码，剩下的就是一个 <code>while(true)</code> 的迭代，直到找不到增广路，查找停止，得到最大流我们的代码结束。</p>
+<p>当我们理解了算法逻辑，代码实现起来也就异常的简单了！</p>
+<h1 id="复杂度分析">复杂度分析</h1>
+<p>由于我们使用深度优先搜索的情况，所以我们可以假设如果有一个图，其中有一条增广路的中间某一条边的容量是 1，但其实最后结果是不走流量的，但是在 DFS 的过程中每次还会先算到它。在这种情况下，假设我们图的最大流是 F ，则在这张图上 Ford-Fulkerson 方法就进行了 F 次的深度优先搜索。每一次搜索都会去搜 E 条边，所以其时间复杂度是 <code>O(F ·|E|)</code>。</p>
+<p>这里的最大流也许会非常大，所以使用 Ford-Fulkerson 方法会产生超级高的时间开销。所以你也明白了，后续的高效算法都是在查询增广路上做文章来优化 Ford-Fulkerson 方法。</p>
+<h1 id="一些边沿知识">一些边沿知识</h1>
+<p>在这篇文章中，我们 <strong>一直称作 Ford-Fulkerson 方法，而不是 Ford-Fulkerson 算法，其实是因为 Ford-Fulkerson 给出了最大流问题中的三个重要思想 - 增广路、残余网络、反向边</strong> 。依赖于 Ford-Fulkerson 方法，后续的最大流算法如 <strong>Edmond-Karp 算法</strong> 、<strong>Dinic 算法</strong> 将会在 Ford-Fulkerson 基础上优化时间复杂度。</p>
+<p>另外提一句，<em>Edmond-Karp</em> 算法的作者 Manning Karp 因为在算法理论方面的巨大贡献，获得了 1985 年的图灵奖。</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/2-ford-fulkerson/ff-manning-karp.png" alt="计算机理论科学家 Manning Karp"></p>
+<p><strong>计算机理论科学家 Manning Karp</strong></p>
+<blockquote>
+<p>关于 Manning Karp，最著名的就是他的《Karp 的 21 个 NP 完全问题》，有兴趣可以看 Wikipedia 对于<a href="https://zh.wikipedia.org/wiki/%E5%8D%A1%E6%99%AE%E7%9A%84%E4%BA%8C%E5%8D%81%E4%B8%80%E5%80%8BNP-%E5%AE%8C%E5%85%A8%E5%95%8F%E9%A1%8C">这篇论文的介绍</a></p>
+</blockquote>
+<p>相对于解决问题的算法而言，<strong>其思想程度更加重要，所以它是一种方法！</strong></p>
+<h1 id="ford-fulkerson-方法的-代码实现"><strong>Ford-Fulkerson 方法的</strong> 代码实现</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;string&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;vector&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;regex&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> MAX_V <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e4</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">5</span>;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Edge</span> {
+    <span style="color:#75715e">// 终点、容量、反向边
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> to, cap, rev;
+    Edge(<span style="color:#66d9ef">int</span> _to, <span style="color:#66d9ef">int</span> _cap, <span style="color:#66d9ef">int</span> _rev)<span style="color:#f92672">:</span> to(_to), cap(_cap), rev(_rev) {}
+};
+
+vector<span style="color:#f92672">&lt;</span>Edge<span style="color:#f92672">&gt;</span> G[MAX_V];
+<span style="color:#66d9ef">bool</span> used[MAX_V];
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">add_edge</span>(<span style="color:#66d9ef">int</span> from, <span style="color:#66d9ef">int</span> to, <span style="color:#66d9ef">int</span> cap) {
+    G[from].push_back(Edge(to, cap, G[to].size()));
+    G[to].push_back(Edge(from, <span style="color:#ae81ff">0</span>, G[from].size() <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>));
+}
+
+<span style="color:#75715e">/**
+</span><span style="color:#75715e">  *
+</span><span style="color:#75715e">  * @param c 当前节点
+</span><span style="color:#75715e">  * @param t 汇点
+</span><span style="color:#75715e">  * @param f 当前路径中的容量最小值
+</span><span style="color:#75715e">  * @return
+</span><span style="color:#75715e">  */</span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">dfs</span>(<span style="color:#66d9ef">int</span> c, <span style="color:#66d9ef">int</span> t, <span style="color:#66d9ef">int</span> f) {
+    <span style="color:#66d9ef">if</span> (c <span style="color:#f92672">==</span> t) {
+        <span style="color:#66d9ef">return</span> f;
+    }
+    used[c] <span style="color:#f92672">=</span> true;
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> G[c].size(); <span style="color:#f92672">++</span> i) {
+        Edge <span style="color:#f92672">&amp;</span>e <span style="color:#f92672">=</span> G[c][i];
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>used[e.to] <span style="color:#f92672">&amp;&amp;</span> e.cap <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+            <span style="color:#66d9ef">int</span> d <span style="color:#f92672">=</span> dfs(e.to, t, min(f, e.cap));
+            <span style="color:#66d9ef">if</span> (d <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+                e.cap <span style="color:#f92672">-=</span> d;
+                G[e.to][e.rev].cap <span style="color:#f92672">+=</span> d;
+                <span style="color:#66d9ef">return</span> d;
+            }
+        }
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// 本文开篇时给出的示例
+</span><span style="color:#75715e"></span>    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">16</span>);
+    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">13</span>);
+    add_edge(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">12</span>);
+    add_edge(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">9</span>);
+    add_edge(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">20</span>);
+    add_edge(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">4</span>);
+    add_edge(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">14</span>);
+    add_edge(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">7</span>);
+    add_edge(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">4</span>);
+
+    <span style="color:#66d9ef">int</span> flow <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">for</span> (;;) {
+        memset(used, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(used));
+        <span style="color:#66d9ef">int</span> f <span style="color:#f92672">=</span> dfs(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">1000</span>);
+        <span style="color:#66d9ef">if</span> (f <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {
+            cout <span style="color:#f92672">&lt;&lt;</span> flow <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 23 验证通过
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+        }
+        flow <span style="color:#f92672">+=</span> f;
+    }
+}
+</code></pre></div><h1 id="总结">总结</h1>
+<p>相信看了本文，已经开始对网络流中最大流问题有了更深的认识。但是上述实现的复杂度我们并不能在做题当中接受，所以接下来，我们将继续探讨更加高效的最大流算法。</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#如何求得最大流">如何求得最大流</a></li>
+    <li><a href="#如何代码实现查找增广路">如何代码实现查找增广路？</a></li>
+    <li><a href="#复杂度分析">复杂度分析</a></li>
+    <li><a href="#一些边沿知识">一些边沿知识</a></li>
+    <li><a href="#ford-fulkerson-方法的-代码实现"><strong>Ford-Fulkerson 方法的</strong> 代码实现</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

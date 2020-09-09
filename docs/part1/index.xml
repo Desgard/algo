@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>第一章 刷题技巧 on 一瓜算法小册</title>
+    <link>https://www.desgard.com/algo/docs/part1/</link>
+    <description>Recent content in 第一章 刷题技巧 on 一瓜算法小册</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    
+	<atom:link href="https://www.desgard.com/algo/docs/part1/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>时间复杂度估算土法</title>
+      <link>https://www.desgard.com/algo/docs/part1/ch01/1-time-complexity/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://www.desgard.com/algo/docs/part1/ch01/1-time-complexity/</guid>
+      <description>想必大家都知道很多算法书上面的复杂度计算基础的“第一章节”，长到你不想看。但是不看吧又觉得失去了什么。所以这篇文章就来说说这个复杂度有没有什么通俗易懂的土方法来计算。
+土法一：执行一行约是一次运算 我们假设计算机运行一行基础代码，就需要进行一次运算。也就是我们常常说的 O(1)。
+来写一段从 1 累加到 100 的代码：
+s = 0 for i in range(1, 101): s += i print(s) # 5050 如此要循环 100 次，时间复杂度就是   \(O_{(100)}\)  。如此，我们改变计算上届，将 100 扩大到 n ，这样便会发现使用循环的方法进行累加是一个时间复杂度为 \(O_{(n)}\)  的算法。
+我们将累加算法改成等差数列前 n 项求和来计算：
+s = (1 + 100) * 100 // 2 # 5050 如此，我们将一个 \(O_{(n)}\)  的算法优化到了 \(O_{(1)}\)  。这种优化无论是对于计算机，还是我们人脑，都可以大幅度的降低运算复杂度。
+为什么说高斯是天才，因为他在小学三年级就发现了这个规律，并将一个 \(O_{(n)}\)  的算法优化到了 \(O_{(1)}\)  。
+土法二：以经验计算时间 以前我在大学的时候参加 ACM 竞赛有这么一个土方法：</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="用线段树再看 RMQ 问题"><meta property="og:title" content="用线段树再看 RMQ 问题" />
+<meta property="og:description" content="GGTalk 播客
+[28:30] 磊子：国内某特别爱招聘的大厂问过这么一道题：一个数组，要求得任意一个区间段内最大的数是多少。如果大家了解的话，就知道这题其实在考线段树&hellip;.
+ 其实 RMQ (Range Minimum/Maximum Query) 问题（又称区间最值问题）之前的文章中也有讲述，在《RMQ 问题》 小节中，通过 ST 的二倍增 &#43; 动态规划的思路，以   \(O(nlogn)\)  预处理以及查询 \(O(1)\)  复杂度下解决了这个问题。
+也许你会想，在数组中直接遍历一下不就完了了吗，为什么要费这么多事情来做？直接遍历查找一遍也就是 \(O(n)\)  的复杂度？是的，其实背景是这样，因为我们需要做 \(K\)  次查询，这个 \(K\)  的上限很大，你可以理解成这个背景是在海量查询之下。
+所以我们的出发点是通过一种优质的数据结构，将查询复杂度降低成 \(O(logn)\)  或者 \(O(1)\)  。由于查询次数是强需求，不是算法层面上可以优化的，所以在查询上的效率是我们主要解决的问题。
+为了解决查询问题，这一篇文章我们引入 线段树（Binary Indexed Tree） 来优化 RMQ 问题的查询操作复杂度。
+线段树的概念 我们如何理解线段树的定义呢？我们先抛开 RMQ 场景，先引入一个区间求和问题。
+ 题目：给你一个数组 \(A\)  ，它有 \(K\)  次查询，每次查询都给你 \(a\)  和 \(b\)  两个值，且 \(a ，每次查询输出一个结果，代表 \(A[a] &#43; A[a &#43; 1] &#43; ." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part3/ch02/1-segment-tree-rmq/" />
+
+<title>用线段树再看 RMQ 问题 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/"class=active>用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>用线段树再看 RMQ 问题</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#线段树的概念">线段树的概念</a></li>
+    <li><a href="#不同场景下线段树的功能">不同场景下线段树的功能</a>
+      <ul>
+        <li><a href="#求区间和">求区间和</a>
+          <ul>
+            <li><a href="#基础数据结构描述">基础数据结构描述</a></li>
+            <li><a href="#build-及-push-up-操作">Build 及 Push Up 操作</a></li>
+            <li><a href="#query-查询操作实现区间和">Query 查询操作实现区间和</a></li>
+            <li><a href="#单点更新操作">单点更新操作</a></li>
+            <li><a href="#单元测试">单元测试</a></li>
+          </ul>
+        </li>
+        <li><a href="#rmq-问题">RMQ 问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#push-up-操作的理解">Push Up 操作的理解</a></li>
+    <li><a href="#复杂度分析">复杂度分析</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>用线段树再看 RMQ 问题</h1><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/1-segment-tree-rmq/title.png" alt="题图"></p>
+<blockquote>
+<p><a href="https://podcasts.apple.com/cn/podcast/ggtalk/id1440443653?i=1000447919521">GGTalk 播客</a></p>
+<p>[28:30] 磊子：国内某特别爱招聘的大厂问过这么一道题：一个数组，要求得任意一个区间段内最大的数是多少。如果大家了解的话，就知道这题其实在考线段树&hellip;.</p>
+</blockquote>
+<p>其实 <strong>RMQ (Range Minimum/Maximum Query)</strong> 问题（又称区间最值问题）之前的文章中也有讲述，在<a href="/algo/docs/part2/ch03/1-range-max-query/"> <strong>《RMQ 问题》</strong> </a>小节中，通过 ST 的二倍增 + 动态规划的思路，以 
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \(O(nlogn)\)
+</span>
+ 预处理以及查询 
+
+<span class="katex">
+  \(O(1)\)
+</span>
+ 复杂度下解决了这个问题。</p>
+<p>也许你会想，在数组中直接遍历一下不就完了了吗，为什么要费这么多事情来做？直接遍历查找一遍也就是 
+
+<span class="katex">
+  \(O(n)\)
+</span>
+ 的复杂度？是的，其实背景是这样，因为我们需要做 
+
+<span class="katex">
+  \(K\)
+</span>
+ 次查询，这个 
+
+<span class="katex">
+  \(K\)
+</span>
+ 的上限很大，你可以理解成这个背景是在海量查询之下。</p>
+<p>所以我们的出发点是通过一种优质的数据结构，将查询复杂度降低成 
+
+<span class="katex">
+  \(O(logn)\)
+</span>
+ 或者 
+
+<span class="katex">
+  \(O(1)\)
+</span>
+。由于查询次数是强需求，不是算法层面上可以优化的，所以在查询上的效率是我们主要解决的问题。</p>
+<p>为了解决查询问题，这一篇文章我们引入 <strong>线段树（Binary Indexed Tree）</strong> 来优化 RMQ 问题的查询操作复杂度。</p>
+<h1 id="线段树的概念">线段树的概念</h1>
+<p>我们如何理解线段树的定义呢？我们先抛开 RMQ 场景，先引入一个区间求和问题。</p>
+<blockquote>
+<p>题目：给你一个数组 
+
+<span class="katex">
+  \(A\)
+</span>
+，它有 
+
+<span class="katex">
+  \(K\)
+</span>
+ 次查询，每次查询都给你 
+
+<span class="katex">
+  \(a\)
+</span>
+ 和 
+
+<span class="katex">
+  \(b\)
+</span>
+ 两个值，且 
+
+<span class="katex">
+  \(a < b < len(A)\)
+</span>
+ ，每次查询输出一个结果，代表 
+
+<span class="katex">
+  \(A[a] + A[a + 1] + ... + A[b]\)
+</span>
+ 的和。</p>
+</blockquote>
+<p>简单描述一下<strong>就是给你数组中的两个下标，让你求出这一个区段的和是多少。</strong></p>
+<p>这次不用思考，我直接给出线段树是如何表示的：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/1-segment-tree-rmq/sg-demo-desc.png" alt="线段树为问题构造"></p>
+<p>我们将整个数组区段， <strong>通过二分区段的方式，将每一个区段的答案记录在二叉树每一个节点上。</strong> 当查询的时候只需要在这个二叉树中对边界做判断，然后拆分成子区间即可。</p>
+<p>所以你应该可以理解，为什么它要叫“线段树”了吧，答案就是它会将整个区段抽象成一个大“线段”，然后根据表示的范围，二分划分成子“线段”。</p>
+<p>如此我们给出线段树的定义： <strong>线段树是一棵二叉树，线段树上每个结点对应的是序列的一段区间，每一个叶子结点对应的是序列的一个元素。树上的每个节点都维护一个区间，根维护的是整个区间，每个节点维护的是父亲的区间二等分后的其中一个子区间。</strong> 当有 
+
+<span class="katex">
+  \(a\)
+</span>
+ 个元素时，对区间的操作可以在 
+
+<span class="katex">
+  \(O(logn)\)
+</span>
+ 复杂度时间内完成。另外，从二叉树结构上，可以看出线段树是一棵完美二叉树（Perfect Binary Tree），即所有叶子的深度都相同，并且每个节点要么是叶子，要么有 2 个子树。</p>
+<h1 id="不同场景下线段树的功能">不同场景下线段树的功能</h1>
+<p>根据节点维护的数据含义不同，线段树可以提供不同的功能来满足各种各样的区间场景。下面我们先以上例中讲述的区间和为例，进而引出 RMQ 的使用场景。</p>
+<h2 id="求区间和">求区间和</h2>
+<h3 id="基础数据结构描述">基础数据结构描述</h3>
+<p>任何数据结构都要从它的构造开始说起。以往我们想当然的认为，树状结构都应该以链式数据来存储。但其实二叉树使用数组描述可能更加简单明了。由于线段树也是二叉树，所以以下所有的表示方式我都使用数组来描述。</p>
+<p>另外，假设我们的节点是 
+
+<span class="katex">
+  \(N\)
+</span>
+ 个，根据线段树结构的性质，我们会把这 
+
+<span class="katex">
+  \(N\)
+</span>
+ 个点当做叶子节点来看待。由于线段树是一棵满二叉树，假设它有 
+
+<span class="katex">
+  \(H\)
+</span>
+  层，第 
+
+<span class="katex">
+  \(H\)
+</span>
+ 层节点数是 
+
+<span class="katex">
+  \(2^{H - 1}\)
+</span>
+  个，一共 
+
+<span class="katex">
+  \( 2^H - 1\)
+</span>
+ 个节点。假设共 
+
+<span class="katex">
+  \(S\)
+</span>
+ 个节点，我们来推导一下：</p>
+
+
+<span class="katex">
+  \[ 
+S = 2^H-1=2^{H-1}2-1=2N-1
+\]
+</span>
+
+<p><strong>那么只要让这个数组的大小开成节点数的两倍，就可以装满全部节点？其实是错误的！</strong> 我们先暂且记住，正确的答案应该是 
+
+<span class="katex">
+  \(4N\)
+</span>
+，具体原因可以查看下一篇《线段树实战要点》的 <strong>空间退化问题</strong>。</p>
+<p>所以将线段树使用以下方式来声明。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> maxn <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e4</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">7</span>;
+
+<span style="color:#66d9ef">int</span> tree[maxn <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">2</span>];
+</code></pre></div><p>一个知识基础：使用数组 <code>tree[N]</code> 来描述二叉树，对于节点 <code>tree[i]</code> ，它的左右孩子节点分别是 <code>tree[2 * i]</code> 和 <code>tree[2 * i + 1]</code>。在代码中为了稍微稍微做一些加速，所以我用 <code>tree[i &lt;&lt; 2]</code> 和 <code>tree[i &lt;&lt; 2 | 1]</code> 来表示。</p>
+<h3 id="build-及-push-up-操作">Build 及 Push Up 操作</h3>
+<p>我们需要构造（Build）一棵线段树，与之同时我们还要考虑这棵线段树的 Push Up 操作。这个 Push Up 操作可以理解成是一种向上更新的概念。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_up</span>(<span style="color:#66d9ef">int</span> rt) {
+    tree[rt] <span style="color:#f92672">=</span> tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+</span> tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>];
+}
+</code></pre></div><p>通过代码可以看出，其实我们是使用下方的两个孩子节点，来更新其共同的父亲结点。从二叉树的角度来看，这个操作由于是向上方来更新维护的数据，所以我们称之为 <strong>Push Up 操作</strong> 。</p>
+<p>具体的 Push Up 操作是为了实现什么效果呢？看这张动图你就懂了：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/1-segment-tree-rmq/sg-op-sum-push-up.gif" alt="Push Up 操作"></p>
+<p>有了 Push Up 操作后，我们就可以自底向上来构建这棵二叉树了。由于我们知道根节点是 <code>tree[1]</code> ，而所有需要 Push Up 操作的元素都是最底部的叶子结点，所以在构造的时候需要先访问到最底部，递归调用 Push Up 向上更新即可。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">/***
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @param l 当前节点描述范围的左边界
+</span><span style="color:#75715e"> * @param r 当前节点描述范围的右边界
+</span><span style="color:#75715e"> * @param rt 代表下标，tree[rt] 代表当前节点
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">build</span>(<span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        tree[rt] <span style="color:#f92672">=</span> num[cur <span style="color:#f92672">++</span>];
+        <span style="color:#66d9ef">return</span> ;
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    build(l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    build(m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#75715e">// 这里递归到叶子执行一次向上更新
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 保证每一层都在上一层有数值之后执行
+</span><span style="color:#75715e"></span>    push_up(rt);
+}
+</code></pre></div><p>从这里可以看的出，其实我们构造一棵线段树，就需要执行多达 
+
+<span class="katex">
+  \(O(nlogn)\)
+</span>
+ 的复杂度。但是考虑到是海量查询的场景，而构造是一次性的（因为线段树是支持更新操作的，这个在本公众号后续篇幅将会讲到），所以从特殊场景下来看这个优化，是很合理的。</p>
+<p>如此，我们完成了一棵线段树的创建。</p>
+<blockquote>
+<p>瓜自己的归纳总结：线段树其实最重要的是“两操作，一思想”。两操作中，<strong>包括 Push Up 和 Push Down 两个操作</strong>，一个思想是 <strong>Lazy 延迟更新思想</strong>。Lazy 延迟更新其实在并查集中我们已经体会到了，在线段树中该如何使用了？这个需要等到线段树的区间更新操作才会讲到。Lazy 延迟更新和 Push Down 操作是紧密相连的。</p>
+</blockquote>
+<h3 id="query-查询操作实现区间和">Query 查询操作实现区间和</h3>
+<p>重头戏在这里，也是我们需要核心解决的问题 - 我们要如何做区间查询？</p>
+<p>我们都知道，如果给你一个排序二叉树，当我查询是否有某个元素的时候，从根节点开始逐一比较节点大小，从而决策是向左走还是向右走就可以了。</p>
+<p>而这里要面对的是一个线段树，线段树每一个节点代表的是一个区间。自然而然，我们只要弄清楚当前结点表示的是哪个区间，从而比较查询区间的边界值，就可以知道在下一层要往哪里走了。</p>
+<p>那如果遇到卡区间的情况怎么办？就是，如果我查询 
+
+<span class="katex">
+  \([1, 6]\)
+</span>
+ 这个区间，而当前结点是根节点 
+
+<span class="katex">
+  \([1, 8]\)
+</span>
+，左区间是 
+
+<span class="katex">
+  \([1, 4]\)
+</span>
+ 右区间是 
+
+<span class="katex">
+  \([5, 8]\)
+</span>
+ 这种情况，没有一个恰好能满足我们查询区域的区间范围。这时候我们只要把 
+
+<span class="katex">
+  \([1, 8]\)
+</span>
+ 划分成 
+
+<span class="katex">
+  \([1, 4]\)
+</span>
+ 和 
+
+<span class="katex">
+  \([5, 6]\)
+</span>
+ 分头查找就可以了。我们用树的遍历思想，其实就是两次递归可以了。</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/1-segment-tree-rmq/sg-op-query.gif" alt="Query 操作"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">/***
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @param L 待查询区间左边界
+</span><span style="color:#75715e"> * @param R 待查询区间右边界
+</span><span style="color:#75715e"> * @param l 当前节点描述范围的左边界
+</span><span style="color:#75715e"> * @param r 当前节点描述范围的右边界
+</span><span style="color:#75715e"> * @param rt 代表下标，tree[rt] 代表当前节点
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">query</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        <span style="color:#66d9ef">return</span> tree[rt];
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) ret <span style="color:#f92672">+=</span> query(L, R, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">if</span> (R <span style="color:#f92672">&gt;</span> m)  ret <span style="color:#f92672">+=</span> query(L, R, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">return</span> ret;
+}
+</code></pre></div><h3 id="单点更新操作">单点更新操作</h3>
+<p>线段树的优势还在于我们可以对某一个节点做更新操作。这一点是 ST 算法不具备的能力。其实单点更新操作与 <code>build</code> 方法的想法十分雷同，我们只要递归到叶子节点，将更新值修改掉，之后逐渐向上执行 <code>push_up</code> 更新，其实就完成了新状态的维护。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">/***
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @param p 待更新的下标，指的在 num 中的下标
+</span><span style="color:#75715e"> * @param replace 待替换的值
+</span><span style="color:#75715e"> * @param l 当前节点描述范围的左边界
+</span><span style="color:#75715e"> * @param r 当前节点描述范围的右边界
+</span><span style="color:#75715e"> * @param rt 代表下标，tree[rt] 代表当前节点
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">update</span>(<span style="color:#66d9ef">int</span> p, <span style="color:#66d9ef">int</span> replace, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        tree[rt] <span style="color:#f92672">=</span> replace;
+        <span style="color:#66d9ef">return</span> ;
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">if</span> (p <span style="color:#f92672">&lt;=</span> m) update(p, replace, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">else</span> update(p, replace, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    push_up(rt);
+}
+</code></pre></div><h3 id="单元测试">单元测试</h3>
+<p>我们将以上的代码整合一下，自己模拟做有个单元测试。来验证这个<strong>支持单点修改的区间和查询场景</strong>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;vector&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> maxn <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e4</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">7</span>;
+
+vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> num(maxn);
+
+<span style="color:#66d9ef">int</span> cur <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+<span style="color:#66d9ef">int</span> tree[maxn <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">2</span>];
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_up</span>(<span style="color:#66d9ef">int</span> rt) {
+    tree[rt] <span style="color:#f92672">=</span> tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+</span> tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>];
+}
+
+<span style="color:#75715e">/***
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @param l 当前节点描述范围的左边界
+</span><span style="color:#75715e"> * @param r 当前节点描述范围的右边界
+</span><span style="color:#75715e"> * @param rt 代表下标，tree[rt] 代表当前节点
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">build</span>(<span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        tree[rt] <span style="color:#f92672">=</span> num[cur <span style="color:#f92672">++</span>];
+        <span style="color:#66d9ef">return</span> ;
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    build(l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    build(m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    push_up(rt);
+}
+
+<span style="color:#75715e">/***
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @param L 待查询区间左边界
+</span><span style="color:#75715e"> * @param R 待查询区间右边界
+</span><span style="color:#75715e"> * @param l 当前节点描述范围的左边界
+</span><span style="color:#75715e"> * @param r 当前节点描述范围的右边界
+</span><span style="color:#75715e"> * @param rt 代表下标，tree[rt] 代表当前节点
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">query</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        <span style="color:#66d9ef">return</span> tree[rt];
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) ret <span style="color:#f92672">+=</span> query(L, R, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">if</span> (R <span style="color:#f92672">&gt;</span> m)  ret <span style="color:#f92672">+=</span> query(L, R, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">return</span> ret;
+}
+
+<span style="color:#75715e">/***
+</span><span style="color:#75715e">    *
+</span><span style="color:#75715e">    * @param p 待更新的下标，指的在 num 中的下标
+</span><span style="color:#75715e">    * @param replace 待替换的值
+</span><span style="color:#75715e">    * @param l 当前节点描述范围的左边界
+</span><span style="color:#75715e">    * @param r 当前节点描述范围的右边界
+</span><span style="color:#75715e">    * @param rt 代表下标，tree[rt] 代表当前节点
+</span><span style="color:#75715e">    */</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">update</span>(<span style="color:#66d9ef">int</span> p, <span style="color:#66d9ef">int</span> replace, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        tree[rt] <span style="color:#f92672">=</span> replace;
+        <span style="color:#66d9ef">return</span> ;
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">if</span> (p <span style="color:#f92672">&lt;=</span> m) update(p, replace, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">else</span> update(p, replace, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    push_up(rt);
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// [1, 8, 3, 4, 7, 1, 6, 2]
+</span><span style="color:#75715e"></span>    num <span style="color:#f92672">=</span> vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>({<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">2</span>});
+    <span style="color:#66d9ef">int</span> n <span style="color:#f92672">=</span> num.size();
+    build(<span style="color:#ae81ff">1</span>, n, <span style="color:#ae81ff">1</span>);
+    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>, n, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1 + 8 + 3 = 12
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>, n, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 3 + 4 + 7 + 1 + 6 + 2 = 23
+</span><span style="color:#75715e"></span>    update(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">1</span>, n, <span style="color:#ae81ff">1</span>); <span style="color:#75715e">// [1, 8, 10, 4, 7, 1, 6, 2]
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>, n, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1 + 8 + 10 = 19
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#75715e">/*
+</span><span style="color:#75715e"> * 输出
+</span><span style="color:#75715e"> * 12
+</span><span style="color:#75715e"> * 23
+</span><span style="color:#75715e"> * 19
+</span><span style="color:#75715e"> * 
+</span><span style="color:#75715e"> */</span>
+</code></pre></div><p>完成测试，全部符合预期结果。😁</p>
+<h2 id="rmq-问题">RMQ 问题</h2>
+<p>我们再来看 RMQ 问题。上面我们通过 Push Up 方法中，父节点等于两个孩子结点之和来构造的区间和树。通过这个思路来想，如果我们修改 Push Up 操作，<strong>将父亲节点等于两个孩子节点的最大值，是不是就完成了区间最大线段树</strong>？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_up</span>(<span style="color:#66d9ef">int</span> rt) {
+    tree[rt] <span style="color:#f92672">=</span> max(tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>], tree[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>]);
+}
+</code></pre></div><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/1-segment-tree-rmq/sg-op-push-up.gif" alt="Push Up 效果展示"></p>
+<p>通过动画来表示，看起来很有道理！要实现 RMQ 问题的查询操作 <code>query</code> ，可能还要使用类似的思路做修改。这个修改就交给聪明的你了！也算是这篇文章给你出的一道思考题。</p>
+<h1 id="push-up-操作的理解">Push Up 操作的理解</h1>
+<p>为什么在线段树中 Push Up 操作如此重要？<em>push-up</em> 在英文中是俯卧撑的意思，由于线段树的叶子节点是对应我们实际数组中的每个元素，根据叶子节点，我们才能向上计算父亲节点的数值，通过子结点“撑起”父节点，意在于此。另外，由于线段树最关键的地方就在于父亲节点和孩子节点之间的关系是什么（其实有规律的二叉树都是这样），而 Push Up 操作却恰恰是用来描述这个关系的，所以 Push Up 是线段树最重要的操作之一。</p>
+<p>线段树只所以区别于其他二叉树，原因是在于描述区间。二叉树往往是通过父亲来确定下一个孩子的位置（例如排序二叉树，插入节点向下填充），而线段树是通过孩子节点来确定父节点。从宏观上看，通常二叉树是向下更新，而线段树是向上更新。Push Up 是决定向上更新的策略是如何的，其重要性不言而喻了。</p>
+<h1 id="复杂度分析">复杂度分析</h1>
+<p>无论是区间求和，还是 RMQ，通过线段树的数据结构来描述数据，实现了构造 
+
+<span class="katex">
+  \(O(4n)\)
+</span>
+ ，查询 
+
+<span class="katex">
+  \(O(klogn)\)
+</span>
+ (
+
+<span class="katex">
+  \(k\)
+</span>
+ 代表可能出现的跨区域多路径)，单点更新 
+
+<span class="katex">
+  \(O(logn)\)
+</span>
+ 。对比与我们用数组来描述原始数据，构造 
+
+<span class="katex">
+  \(O(N)\)
+</span>
+，查询 
+
+<span class="katex">
+  \(O(N)\)
+</span>
+ ，更新 
+
+<span class="katex">
+  \(O(1)\)
+</span>
+ 来说，在多查询的场景下，会有很大幅度的优化。</p>
+<h1 id="总结">总结</h1>
+<p>通过 RMQ 线段树通过区间和线段树的简单转换，其实我们已经知道了，线段树能解决的问题不仅仅是这两个场景。其实只要是区间查询、区间操作问题中，并且区间内有确定运算结果场景下，都可以通过线段树来优化查询、更新的复杂度，例如：区间求 GCD（最大公约数）、区间求异或结果等等。</p>
+<p>另外，对于线段树的探究远不止于此。后续还会有向下更新、区间更新这两个操作的加入，才能更大的发挥线段树的威力。这些都会在后续的文章中逐一分析！</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#线段树的概念">线段树的概念</a></li>
+    <li><a href="#不同场景下线段树的功能">不同场景下线段树的功能</a>
+      <ul>
+        <li><a href="#求区间和">求区间和</a>
+          <ul>
+            <li><a href="#基础数据结构描述">基础数据结构描述</a></li>
+            <li><a href="#build-及-push-up-操作">Build 及 Push Up 操作</a></li>
+            <li><a href="#query-查询操作实现区间和">Query 查询操作实现区间和</a></li>
+            <li><a href="#单点更新操作">单点更新操作</a></li>
+            <li><a href="#单元测试">单元测试</a></li>
+          </ul>
+        </li>
+        <li><a href="#rmq-问题">RMQ 问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#push-up-操作的理解">Push Up 操作的理解</a></li>
+    <li><a href="#复杂度分析">复杂度分析</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

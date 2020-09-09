@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="线段树区间更新操作"><meta property="og:title" content="线段树区间更新操作" />
+<meta property="og:description" content="在之前的文章中，我们已经学习了如何使用线段树来做一些常规的区间操作：如何建树、单点更新、区间查询。这些操作通过线段树这种数据结构的特点，将单点更新和区间查询的复杂度都统一到   \(O(logn)\)  ，在海量查询场景下的开销也降低了很多。
+那么关于线段树的讨论就到此为止了吗？其实并不是。我们学到的还只是冰山一角。这篇文章，我们来讨论一下如何通过线段树来实现区间更新。区间更新的操作在这里指的是对某一个范围的数进行增加或减少同一个常数的操作。例如数组 [2, 3, 4, 5, 6] ，对其下标 [0, 2] 进行区间更新都增加 10 ，则数组会变成 [12, 13, 14, 5, 6] 。
+以下对于线段树的讨论全部以区间和场景为准。
+单点更新遍历 当我们讨论区间更新的时候，肯定已经有读者开始思考：只要我们遍历一下区间的每一个值，执行单点更新不就可以了？
+从结果上来看，这么做完全可以。从复杂度上来看，以 \(O(nlogn)\)  复杂度执行一次长度为 \(n\)  的区间更新。
+我们回过头来看我们引出线段树目的是什么？为了实现常数复杂度时间构造和对数复杂度的操作。那么，我们有没有方式将区间更新操作通过对数复杂度 \(O(logn)\)  时间来更新一个区间的数值呢？
+考虑查询时候的行为 上文介绍的 query 操作总结成动图如下（假设我们有下标 [1, 8] 8 个元素构成的区间和线段树，此时我们要查询 [1, 6] 这个区间）：
+我们可以发现，其实在每次查询的时候，是不断对当前层级所表示的区间进行二分分治，直到最后每个分块的并集即为待查询区间。
+另外线段树还有一个特点：由于我们引入的 push_up 操作，这就会让线段树有这么一个特点：父亲结点是包括子结点的状态。这是一个什么意思呢？拿区间和为例，push_up 是通过子结点数值求和来构造父结点，即：
+tree[rt] = tree[rt * 2] &#43; tree[rt * 2 &#43; 1] 由于这个核心操作，我们发现我们描述的线段树是一种下级扩展上级的结构。当查询的时候，如果查询的节点所描述的区间符合要求，则会被计算到结果中。
+要确定一个目标，我们的节点更新其实是为了查询到最新的结果。
+所以有这么一个思路， 对所有查询范围中最小粒度的节点进行更新，从而就能让所有的查询操作返回最新的情况。什么是范围中最小粒度的节点呢？其实就是要满足两个特点：
+ 在查询范围中； 尽量在线段树的上层。  增量记录 根据查询自上到下的特点，我们来维护一个增量数组，这个增量数组代表对应的节点待更新的增量。假设我们对上面动图上的线段树进行一个区间更新的操作，将 [3, 6] 这个区间上的所有数字增加 4 。此时我们的增量数组如图所示：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part3/ch02/3-segment-tree-range/" />
+
+<title>线段树区间更新操作 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/"class=active>线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>线段树区间更新操作</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#单点更新遍历">单点更新遍历</a></li>
+    <li><a href="#考虑查询时候的行为">考虑查询时候的行为</a></li>
+    <li><a href="#增量记录">增量记录</a></li>
+    <li><a href="#push-down-操作">Push Down 操作</a></li>
+    <li><a href="#unit-test">Unit Test</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>线段树区间更新操作</h1><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/3-segment-tree-range/title.png" alt="题头"></p>
+<p>在之前的文章中，我们已经学习了如何使用线段树来做一些常规的区间操作：如何建树、单点更新、区间查询。这些操作通过线段树这种数据结构的特点，将单点更新和区间查询的复杂度都统一到 
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \(O(logn)\)
+</span>
+，在海量查询场景下的开销也降低了很多。</p>
+<p>那么关于线段树的讨论就到此为止了吗？其实并不是。我们学到的还只是冰山一角。这篇文章，我们来讨论一下如何通过线段树来实现<strong>区间更新</strong>。区间更新的操作在这里指的是对某一个范围的数进行增加或减少同一个常数的操作。例如数组 <code>[2, 3, 4, 5, 6]</code> ，对其下标 <code>[0, 2]</code> 进行区间更新都增加 <code>10</code> ，则数组会变成 <code>[12, 13, 14, 5, 6]</code> 。</p>
+<p>以下对于线段树的讨论全部以区间和场景为准。</p>
+<h1 id="单点更新遍历">单点更新遍历</h1>
+<p>当我们讨论区间更新的时候，肯定已经有读者开始思考：只要我们遍历一下区间的每一个值，执行单点更新不就可以了？</p>
+<p>从结果上来看，这么做完全可以。从复杂度上来看，以 
+
+<span class="katex">
+  \(O(nlogn)\)
+</span>
+ 复杂度执行一次长度为 
+
+<span class="katex">
+  \(n\)
+</span>
+ 的区间更新。</p>
+<p>我们回过头来看我们引出线段树目的是什么？为了实现常数复杂度时间构造和对数复杂度的操作。那么，我们有没有方式将区间更新操作通过对数复杂度 
+
+<span class="katex">
+  \(O(logn)\)
+</span>
+ 时间来更新一个区间的数值呢？</p>
+<h1 id="考虑查询时候的行为">考虑查询时候的行为</h1>
+<p>上文介绍的 <code>query</code> 操作总结成动图如下（假设我们有下标 <code>[1, 8]</code> 8 个元素构成的区间和线段树，此时我们要查询 <code>[1, 6]</code> 这个区间）：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/3-segment-tree-range/sg-query-operate.gif" alt="区间查询"></p>
+<p>我们可以发现，其实在每次查询的时候，是不断对当前层级所表示的区间进行二分分治，直到最后每个分块的并集即为待查询区间。</p>
+<p>另外线段树还有一个特点：由于我们引入的 <code>push_up</code> 操作，这就会让线段树有这么一个特点：<strong>父亲结点是包括子结点的状态</strong>。这是一个什么意思呢？拿区间和为例，<code>push_up</code> 是通过子结点数值求和来构造父结点，即：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">tree[rt] <span style="color:#f92672">=</span> tree[rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>] <span style="color:#f92672">+</span> tree[rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>]
+</code></pre></div><p>由于这个核心操作，我们发现我们描述的线段树是一种下级扩展上级的结构。<strong>当查询的时候，如果查询的节点所描述的区间符合要求，则会被计算到结果中</strong>。</p>
+<p>要确定一个目标，我们的节点更新其实是为了查询到最新的结果。</p>
+<p><strong>所以有这么一个思路，</strong> 对所有查询范围中最小粒度的节点进行更新，从而就能让所有的查询操作返回最新的情况。什么是范围中最小粒度的节点呢？其实就是要满足两个特点：</p>
+<ol>
+<li>在查询范围中；</li>
+<li>尽量在线段树的上层。</li>
+</ol>
+<h1 id="增量记录">增量记录</h1>
+<p>根据查询自上到下的特点，我们来维护一个增量数组，这个增量数组代表对应的节点待更新的增量。假设我们对上面动图上的线段树进行一个区间更新的操作，将 <code>[3, 6]</code> 这个区间上的所有数字增加 <code>4</code> 。此时我们的增量数组如图所示：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/3-segment-tree-range/sg-lazy-flag.gif" alt="增量记录"></p>
+<p>为什么要单独用一个属性来记录增量？因为我们上面的图片发现我们需要查的 <code>[1, 6]</code> 这个区间，其最小颗粒度的查询节点是 <code>[1, 4]</code> 和 <code>[5, 6]</code> 这两个节点，所以我们将增量向下更新到这两个节点，就能保证我们查询 <code>[1, 6]</code> 这个区间的正确性。</p>
+<p>于是，通过这个思路我们来思考，当我们需要对一个区间进行批量增减操作的时候，我们只要向下更新到我们所有查询操作的最小粒度即可，而不用完全对整个线段树进行更新，是不是就完成了复杂度的优化！</p>
+<p>这就是 
+
+<span class="katex">
+  \(O(logN)\)
+</span>
+ 级别的批量更新思路，沿着这个思路我们继续来看 Push Down 操作。</p>
+<h1 id="push-down-操作">Push Down 操作</h1>
+<p>所谓 Push Down 操作，与我们第一篇文中所讲述的 Push Up 操作相反，Push Down 也就是向下更新的意思。因为我们要引入这个增量的记录数组，所以我们需要 Push Down 操作。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_down</span>(<span style="color:#66d9ef">int</span> rt, <span style="color:#66d9ef">int</span> m) {
+    <span style="color:#75715e">// 如果增量数组有值，则我们将其向下更新
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 此时的增量数组已经被放置在了最小颗粒度查询节点
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 向下更新是为了更新到 sum 数组
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (add[rt]) {
+        <span style="color:#75715e">// 先向下传递更新
+</span><span style="color:#75715e"></span>        add[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt];
+        add[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt];
+        <span style="color:#75715e">// 由于描述的是一个区间的批量更新，则这个区间要增加 detal * cnt 
+</span><span style="color:#75715e"></span>        sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt] <span style="color:#f92672">*</span> (m <span style="color:#f92672">-</span> (m <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>));
+        sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt] <span style="color:#f92672">*</span> (m <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>);
+        <span style="color:#75715e">// 传递后清空增量数组的父节点
+</span><span style="color:#75715e"></span>        add[rt] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    }
+}
+</code></pre></div><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part3/ch02/3-segment-tree-range/sg-push-down.gif" alt="Push Down 操作"></p>
+<p>在 Push Down 操作中，我们已经保证了这个更新是最小的可查询的粒度。那么，如果我们在后面要在后面去查询更细的粒度，我们要怎么办呢？其实，思路很简单，当我们查询的时候，也执行 Push Down 按照之前需要更新的范围继续向下更新，是不是就可以了。</p>
+<p>我们来修改一下查询操作的代码，让他支持区间批量修改操作引入后的边查询、边修改的升级版。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">query</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        <span style="color:#66d9ef">return</span> sum[rt];
+    }
+    <span style="color:#75715e">// 如果查询的时候遇到了增量数组，则向下更新一下
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 因为后续要对下层区间和进行查询，所以需要最新的状态
+</span><span style="color:#75715e"></span>    push_down(rt , r <span style="color:#f92672">-</span> l <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) ret <span style="color:#f92672">+=</span> query(L , R , l, m, rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>);
+    <span style="color:#66d9ef">if</span> (m <span style="color:#f92672">&lt;</span> R) ret <span style="color:#f92672">+=</span> query(L , R , m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">return</span> ret;
+}
+</code></pre></div><p>同样的，由于 Update 区间操作也需要想查询一样最小的可更新粒度，所以我们在每查询到一个节点时，也对其增加一个 Push Down 操作，如此可以保证下方节点都是最新的更新态。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">update</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> c, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        add[rt] <span style="color:#f92672">+=</span> c;
+        sum[rt] <span style="color:#f92672">+=</span> c <span style="color:#f92672">*</span> (r <span style="color:#f92672">-</span> l <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+        <span style="color:#66d9ef">return</span>;
+    }
+    <span style="color:#75715e">// 如果 update 更细粒度的节点，我们将其增量向下推一层获得最新状态
+</span><span style="color:#75715e"></span>    push_down(rt, r <span style="color:#f92672">-</span> l <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) {
+        update(L, R, c, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    }
+    <span style="color:#66d9ef">if</span> (m <span style="color:#f92672">&lt;</span> R) {
+        update(L, R, c, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    }
+    push_up(rt);
+}
+</code></pre></div><h1 id="unit-test">Unit Test</h1>
+<p>使用上面图示中的线段树，我们来写一个单元测试。分别对应以下操作：</p>
+<ol>
+<li>建立区间和线段树；</li>
+<li>查询 <code>[1, 1]</code> 节点；</li>
+<li>查询 <code>[1, 6]</code> 节点；</li>
+<li>更新 <code>[1, 6]</code> 节点，全部增加 <code>4</code>；</li>
+<li>查询 <code>[1, 6]</code> 节点；</li>
+<li>查询 <code>[1, 2]</code> 节点；</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;vector&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> maxn <span style="color:#f92672">=</span> <span style="color:#ae81ff">100000</span>;
+
+vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> desc <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">2</span>};
+<span style="color:#66d9ef">int</span> cur <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+<span style="color:#66d9ef">int</span> add[maxn <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">2</span>];
+<span style="color:#66d9ef">int</span> sum[maxn <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">2</span>];
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_up</span>(<span style="color:#66d9ef">int</span> rt) {
+    sum[rt] <span style="color:#f92672">=</span> sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+</span> sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>];
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push_down</span>(<span style="color:#66d9ef">int</span> rt, <span style="color:#66d9ef">int</span> m) {
+    <span style="color:#66d9ef">if</span> (add[rt]) {
+        add[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt];
+        add[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt];
+        sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt] <span style="color:#f92672">*</span> (m <span style="color:#f92672">-</span> (m <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>));
+        sum[rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">+=</span> add[rt] <span style="color:#f92672">*</span> (m <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>);
+        add[rt] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    }
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">build</span>(<span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    add[rt] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">if</span> (l <span style="color:#f92672">==</span> r) {
+        cout <span style="color:#f92672">&lt;&lt;</span> rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34; &#34;</span> <span style="color:#f92672">&lt;&lt;</span> desc[cur] <span style="color:#f92672">&lt;&lt;</span> endl;
+        sum[rt] <span style="color:#f92672">=</span> desc[cur <span style="color:#f92672">++</span>];
+        <span style="color:#66d9ef">return</span>;
+    }
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    build(l, m, rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>);
+    build(m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    push_up(rt);
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">update</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> c, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        add[rt] <span style="color:#f92672">+=</span> c;
+        sum[rt] <span style="color:#f92672">+=</span> c <span style="color:#f92672">*</span> (r <span style="color:#f92672">-</span> l <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+        <span style="color:#66d9ef">return</span>;
+    }
+    push_down(rt, r <span style="color:#f92672">-</span> l <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) {
+        update(L, R, c, l, m, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span>);
+    }
+    <span style="color:#66d9ef">if</span> (m <span style="color:#f92672">&lt;</span> R) {
+        update(L, R, c, m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">|</span> <span style="color:#ae81ff">1</span>);
+    }
+    push_up(rt);
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">query</span>(<span style="color:#66d9ef">int</span> L, <span style="color:#66d9ef">int</span> R, <span style="color:#66d9ef">int</span> l, <span style="color:#66d9ef">int</span> r, <span style="color:#66d9ef">int</span> rt) {
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> l <span style="color:#f92672">&amp;&amp;</span> r <span style="color:#f92672">&lt;=</span> R) {
+        <span style="color:#66d9ef">return</span> sum[rt];
+    }
+    push_down(rt , r <span style="color:#f92672">-</span> l <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">int</span> m <span style="color:#f92672">=</span> (l <span style="color:#f92672">+</span> r) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">if</span> (L <span style="color:#f92672">&lt;=</span> m) ret <span style="color:#f92672">+=</span> query(L , R , l, m, rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>);
+    <span style="color:#66d9ef">if</span> (m <span style="color:#f92672">&lt;</span> R) ret <span style="color:#f92672">+=</span> query(L , R , m <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, r, rt <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">return</span> ret;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    build(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>); <span style="color:#75715e">// [1, 8, 3, 4, 7, 1, 6, 2]
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 1 + 8 + 3 + 4 + 7 + 1= 24
+</span><span style="color:#75715e"></span>    update(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>); <span style="color:#75715e">// [5, 12, 7, 8, 11, 5, 6, 2]
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 5 + 12 + 7 + 8 + 11 + 5 = 48
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> query(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 5 + 12 = 17
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>也许在读完之后，你会觉得这是一种很巧妙的区间增减操作，因为它是面向查询的。是的，这就是算法中的“惰性”（Lazy）思想，我们前面在并查集中也见到了这种优化。</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#单点更新遍历">单点更新遍历</a></li>
+    <li><a href="#考虑查询时候的行为">考虑查询时候的行为</a></li>
+    <li><a href="#增量记录">增量记录</a></li>
+    <li><a href="#push-down-操作">Push Down 操作</a></li>
+    <li><a href="#unit-test">Unit Test</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

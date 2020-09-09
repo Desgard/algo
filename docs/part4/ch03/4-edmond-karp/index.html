@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Edmond-Karp 最大流算法详解"><meta property="og:title" content="Edmond-Karp 最大流算法详解" />
+<meta property="og:description" content="知识梳理  在「初识最大流问题」中，我们了解了什么是流网络模型、什么是最大流问题、以及在流网络中 的增广路（Augmenting Path）概念； 在「Ford-Fulkerson 最大流求解方法」中，我们学习了 Ford-Fulkerson 的最大流问题求解方法和思路：不断的深度优先搜索，直到没有增广路为止则获得最大流； 在「二分匹配的最大流思维」中，通过增加超级源和超级汇来修改二分图，从而将二分匹配问题转换成了最大流问题，最后通过 Ford-Fulkerson 方法解决。  以上三篇先导文章都是在认识和使用最大流这种问题模型，从而进行一些算法思考。但是我们始终没有关心 Ford-Fulkerson 方法的时间复杂度问题。
+这篇文章会讲述一个求解最大流问题的 EK 算法，从而优化在某些场景下最大流问题的求解效率。
+Ford-Fulkerson 方法有什么问题？ 我们知道，在之前讨论的图中，根据 Ford-Fulkerson 方法，我们采用深度优先搜索（下文简称 DFS），不断的去寻找查询增广路，从而增加超级汇点的流量。先来复习一下 Ford-Fulkerson 方法的算法流程：
+ 使用 DFS 搜索 出一条增广路； 在这条路径中所有的边的容量减去这条增广路的流量 f，并建立容量为 f 的反向边； 返回操作一，直到没有增广路；  在这个算法流程中，为将 “使用 DFS” 进行了加粗，你一定察觉到一些端倪。我们来从这个角度来思考一下：
+假设有一个网络流如上图所示，我们可以一眼看出最大流是 99。但是在我们代码中使用 Fold-Fulkerson 算法进行查找增广路的过程中，由于根据标号进行搜索，所以一定会先找到 S → A → C → &hellip;. → D → E → T 这条增广路。于是我们就浪费了很多开销。
+其实我们在这个问题中，只要找到 S → B → E → T 这条增广路，就可以将 T 的入度达到满流状态，后续也就直接结束了。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part4/ch03/4-edmond-karp/" />
+
+<title>Edmond-Karp 最大流算法详解 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/">矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/"class=active>*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Edmond-Karp 最大流算法详解</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#知识梳理">知识梳理</a></li>
+    <li><a href="#ford-fulkerson-方法有什么问题">Ford-Fulkerson 方法有什么问题？</a></li>
+    <li><a href="#算法导论上给出的最坏情况分析">算法导论上给出的最坏情况分析</a></li>
+    <li><a href="#基于-dfs-的-ff-方法复杂度分析">基于 DFS 的 FF 方法复杂度分析</a></li>
+    <li><a href="#edmond-karp-算法解析">Edmond-Karp 算法解析</a>
+      <ul>
+        <li><a href="#1-bfs-搜索查询增广路">1. BFS 搜索查询增广路</a></li>
+        <li><a href="#2-增广路径上的边与反向边的容量操作">2. 增广路径上的边与反向边的容量操作</a></li>
+      </ul>
+    </li>
+    <li><a href="#ek-最大流完整实现">EK 最大流完整实现</a></li>
+    <li><a href="#ek-算法时间复杂度及适用情况">EK 算法时间复杂度及适用情况</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>Edmond-Karp 最大流算法详解</h1><h1 id="知识梳理">知识梳理</h1>
+<ul>
+<li>在「初识最大流问题」中，我们了解了什么是流网络模型、什么是最大流问题、以及在<strong>流网络中 的增广路（Augmenting Path）概念</strong>；</li>
+<li>在「Ford-Fulkerson 最大流求解方法」中，我们学习了 Ford-Fulkerson 的最大流问题求解方法和思路：<strong>不断的深度优先搜索，直到没有增广路为止则获得最大流</strong>；</li>
+<li>在「二分匹配的最大流思维」中，<strong>通过增加超级源和超级汇来修改二分图，从而将二分匹配问题转换成了最大流问题</strong>，最后通过 Ford-Fulkerson 方法解决。</li>
+</ul>
+<p>以上三篇先导文章都是在认识和使用最大流这种问题模型，从而进行一些算法思考。但是我们始终没有关心 Ford-Fulkerson 方法的时间复杂度问题。</p>
+<p>这篇文章会讲述一个求解最大流问题的 EK 算法，从而<strong>优化在某些场景下最大流问题的求解效率</strong>。</p>
+<h1 id="ford-fulkerson-方法有什么问题">Ford-Fulkerson 方法有什么问题？</h1>
+<p>我们知道，在之前讨论的图中，根据 Ford-Fulkerson 方法，我们采用深度优先搜索（下文简称 DFS），不断的去寻找查询增广路，<strong>从而增加超级汇点的流量</strong>。先来复习一下 Ford-Fulkerson 方法的算法流程：</p>
+<ol>
+<li><strong>使用 DFS 搜索</strong> 出一条增广路；</li>
+<li>在这条路径中所有的边的容量减去这条增广路的流量 f，并建立容量为 f 的反向边；</li>
+<li>返回操作一，直到没有增广路；</li>
+</ol>
+<p>在这个算法流程中，为将 “使用 DFS” 进行了加粗，你一定察觉到一些端倪。我们来从这个角度来思考一下：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/4-edmond-karp/ek-more-vetex-graph.png" alt="FF 方法问题"></p>
+<p>假设有一个网络流如上图所示，我们可以一眼看出最大流是 99。但是在我们代码中使用 Fold-Fulkerson 算法进行查找增广路的过程中，由于根据标号进行搜索，所以一定会先找到 S → A → C → &hellip;. → D → E → T 这条增广路。于是我们就浪费了很多开销。</p>
+<p>其实我们在这个问题中，只要找到 S → B → E → T 这条增广路，就可以将 <strong>T 的入度达到满流状态，后续也就直接结束了。</strong></p>
+<h1 id="算法导论上给出的最坏情况分析">算法导论上给出的最坏情况分析</h1>
+<p>如果有一个图，某一条边是一个“噪声边”（所谓“噪声”就是指它在最终的结果中是没有对汇点进行增广的，也就是没有贡献流量的），**它的容量很少，并且它在 DFS 搜索中，位置十分靠前，每一次都优先搜到了这一条增广路，那么在每一个二次搜索增广路的时候，都会去抵消它的流量，通过反向边完成一次真实的增广操作。**这样问题就十分严重了。我举一个例子：</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/4-edmond-karp/ek-ff-bad-situation.png" alt="FF 方法最坏情况"></p>
+<p>上面这个图，我们看一眼就知道它的结果是 s → 0 → t 和 s → 1 → t 这两个增广路贡献的流量和 <code>199</code>，但是由于 0 → 1 这条边的序号十分靠前，所以每次在进行搜索增广路的过程中，就会优先使用 S → A → B → T 这条边；然后在第二次选择增广路时，我们选择了 S → B → A → T ，如此这样反复，我们发现每一次找到增广路，只增加了 <code>1</code> 个单位的流量，所以如此反复 <code>199</code> 次才能完成最大流算法的计算。</p>
+<p>我们用动图来描述一下这个场景：</p>
+<video src="https://github.com/Desgard/algo/raw/img/img/part4/ch03/4-edmond-karp/ek-ff-bad-play.m4v" width="100%" controls="controls">
+您的浏览器不支持 video 标签。
+</video>
+<p>结合代码，我们来看看到底进行了多少次的增广操作：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;vector&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;queue&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;unordered_map&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#75715e">#define INF 0x3f3f3f3f
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> MAX_V <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e4</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">5</span>;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Edge</span> {
+    <span style="color:#66d9ef">int</span> to, cap, rev;
+    Edge(<span style="color:#66d9ef">int</span> _to, <span style="color:#66d9ef">int</span> _cap, <span style="color:#66d9ef">int</span> _rev)<span style="color:#f92672">:</span> to(_to), cap(_cap), rev(_rev) {}
+};
+
+<span style="color:#75715e">// 邻接表记录点和其相连的边
+</span><span style="color:#75715e">// 比如节点 1 的所有出度边集 G[1]
+</span><span style="color:#75715e"></span>vector<span style="color:#f92672">&lt;</span>Edge<span style="color:#f92672">&gt;</span> G[MAX_V]; 
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">add_edge</span>(<span style="color:#66d9ef">int</span> from, <span style="color:#66d9ef">int</span> to, <span style="color:#66d9ef">int</span> cap) {
+    G[from].push_back(Edge(to, cap, G[to].size()));
+    G[to].push_back(Edge(from, <span style="color:#ae81ff">0</span>, G[from].size() <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>));
+}
+
+<span style="color:#66d9ef">bool</span> used[MAX_V];
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">dfs</span>(<span style="color:#66d9ef">int</span> c, <span style="color:#66d9ef">int</span> t, <span style="color:#66d9ef">int</span> f) {
+    <span style="color:#66d9ef">if</span> (c <span style="color:#f92672">==</span> t) {
+        <span style="color:#66d9ef">return</span> f;
+    }
+    used[c] <span style="color:#f92672">=</span> true;
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> G[c].size(); <span style="color:#f92672">++</span> i) {
+        Edge <span style="color:#f92672">&amp;</span>e <span style="color:#f92672">=</span> G[c][i];
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>used[e.to] <span style="color:#f92672">&amp;&amp;</span> e.cap <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+            <span style="color:#66d9ef">int</span> d <span style="color:#f92672">=</span> dfs(e.to, t, min(f, e.cap));
+            <span style="color:#66d9ef">if</span> (d <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+                e.cap <span style="color:#f92672">-=</span> d;
+                G[e.to][e.rev].cap <span style="color:#f92672">+=</span> d;
+                <span style="color:#66d9ef">return</span> d;
+            }
+        }
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">max_flow</span>(<span style="color:#66d9ef">int</span> s, <span style="color:#66d9ef">int</span> t) {
+    <span style="color:#66d9ef">int</span> flow <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">int</span> cnt <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">for</span> (;;) {
+        memset(used, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(used));
+        <span style="color:#66d9ef">int</span> f <span style="color:#f92672">=</span> dfs(s, t, INF);
+        cnt <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+        <span style="color:#66d9ef">if</span> (f <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {
+            cout <span style="color:#f92672">&lt;&lt;</span> cnt <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 5 - 也就是说只进行了 5 次增广路查询
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> flow;
+        }
+        flow <span style="color:#f92672">+=</span> f;
+    }
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+		<span style="color:#75715e">// 0: S点
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 1: A点
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 2: B点
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 3: T点
+</span><span style="color:#75715e"></span>    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">99</span>);
+    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">100</span>);
+    add_edge(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+    add_edge(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">100</span>);
+    add_edge(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">100</span>);
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> max_flow(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>);
+
+    cout <span style="color:#f92672">&lt;&lt;</span> ret <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 199 
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>但我们发现，即使先搜索了 S → A → B → T 这条增广路，也不会出现这种最坏情况。<strong>原因是因为我们所实现的 Ford-Fulkerson 方法是使用 DFS 深度优先搜索查找增广路</strong>，在实现中有这句：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> d <span style="color:#f92672">=</span> dfs(e.to, t, min(f, e.cap));
+</code></pre></div><p>这个 DFS 中会有<strong>回溯流程</strong>，也就是说，当我们找到 S → A → B → T 之后，对所有边的容量减 <code>1</code> ，此时回溯到了 A 点，则又会继续查找 S → A → T 这条增广路。所以我们并不能看到《算法导论》中讨论的这种最差情况。</p>
+<p>虽然这种极限情况是无法得到的，但是我们也知道了传统的 Ford-Fulkerson 方法还是存在优化的可能。</p>
+<h1 id="基于-dfs-的-ff-方法复杂度分析">基于 DFS 的 FF 方法复杂度分析</h1>
+<p>从上面这里例子，你已经发现了，当基于 DFS 的 FF 算法的最差情况复杂度是和最大流相关的。假设我们有 <code>E</code> 条边并且最大流是 <code>F</code>，每次 DFS 查增广路则需要 <code>O(E)</code> 的复杂度，当最大流是 <code>E</code> 的时候，我们要进行最多 <code>E</code> 次的增广路查找。</p>
+<p>所以基于 DFS 的 FF 算法的时间复杂度是：</p>
+<p>$$O(V·F)$$</p>
+<p>但是由于我们使用的是带有回溯的 DFS ，所以复杂度是要小于上述这个结果的。这个结果就是 Ford-Fulkerson 方法的算法复杂度上届。</p>
+<h1 id="edmond-karp-算法解析">Edmond-Karp 算法解析</h1>
+<p>再回头看这个图，我们能得到什么启发呢？</p>
+<p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part4/ch03/4-edmond-karp/ek-more-vetex-graph.png" alt=""></p>
+<p>启发就是，如果我们<strong>能够尽早的找到 S → B → E → T 这条增广路是不是就可以了？</strong></p>
+<p>沿着这个思路我们继续思考，是不是有一种搜索方式可以均衡分配到每一个搜索结果中相同的层级呢？是的，<strong>就是 BFS 广度优先搜索</strong>。是的，计算机科学家 Edmond-Karp 也是这么考虑的。</p>
+<p>我们再用《算法导论》中的流网络，配合 BFS 广度优先搜索，进行增广路的查找来看一下在 Edmond-Karp 最大流的代码实现中我们需要记录哪些信息？</p>
+<video src="https://github.com/Desgard/algo/raw/img/img/part4/ch03/4-edmond-karp/ek-good-play.m4v" width="100%" controls="controls">
+您的浏览器不支持 video 标签。
+</video>
+<p>在 Edmond-Karp 最大流算法中，可以看到总流程也是分成 3 步：</p>
+<ol>
+<li>使用 BFS 找到一条增广路（对应下面的步骤 1）；</li>
+<li>计算这条路的最小容量边，为汇点加流量，并建立反向边，其容量为增加的流量（对应下面的步骤 2）；</li>
+<li>重复第一步，如果不能找到一条增广路则得到最大流；</li>
+</ol>
+<p>但是在实现上，由于我们采用了 BFS 方法，则无法对这条增广路进行回溯处理。所以在代码实现的时候，我们<strong>需要通过一个数组或者一个 <code>Map</code> 来记录下对应点在增广路上的入度边</strong>。</p>
+<p>下面我们来拆解这几步的实现单独来看。</p>
+<h2 id="1-bfs-搜索查询增广路">1. BFS 搜索查询增广路</h2>
+<p>为了解释 BFS 的查询方式，我又画了一个不规则的流网络来简书 BFS 查询最短路的流程：</p>
+<p><img src="https://github.com/Desgard/algo/raw/img/img/part4/ch03/4-edmond-karp/ek-find-path.gif" alt="BFS 搜索增广路"></p>
+<p>从这个过程中可以看出，我们从源点 <code>S</code> 进行 BFS 广度优先搜索，当第一次到达汇点 <code>T</code> 后就停止搜索，然后来执行我们的<strong>增加流量</strong>和<strong>建立反向边的操作</strong>。由于我们需要在到达汇点 <code>T</code> 后来处理这条路径，所以<strong>需要一个数组或者 Map 记录每一个节点的入度边，这样也就可以从后向前获取到这条路径了</strong>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// 用来记录当前路径上的最小容量，用于加流量操作
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> a[MAX_V]; 
+
+<span style="color:#75715e">// 记录下标点的边编号，pair 对应 G[x1][x2]，x1 是描述哪个入度点，x2 是描述 x1 点的第 x2 条边
+</span><span style="color:#75715e"></span>unordered_map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, pair<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;&gt;</span> pre; 
+</code></pre></div><p>我们确定了要记录哪些信息，剩下的就是 BFS 流程了：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">bfs</span>(<span style="color:#66d9ef">int</span> s, <span style="color:#66d9ef">int</span> t) {
+		<span style="color:#75715e">// a 初始化成 0，也可以判断是否已经被染色，从而剪枝情况
+</span><span style="color:#75715e"></span>    memset(a, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(a));
+		<span style="color:#75715e">// 使用队列，保存处理节点
+</span><span style="color:#75715e"></span>    queue<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> que;
+    que.push(s);
+		<span style="color:#75715e">// 每个节点所流过的流量设置为 INF 无穷大
+</span><span style="color:#75715e"></span>		<span style="color:#75715e">// 这样可以起到求最小的作用
+</span><span style="color:#75715e"></span>    a[s] <span style="color:#f92672">=</span> INF;
+    <span style="color:#66d9ef">while</span> (<span style="color:#f92672">!</span>que.empty()) {
+        <span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> que.front();
+        que.pop();
+				<span style="color:#75715e">// 遍历当前节点的所有边
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> G[x].size(); <span style="color:#f92672">++</span> i) {
+            Edge<span style="color:#f92672">&amp;</span> e <span style="color:#f92672">=</span> G[x][i];
+						<span style="color:#75715e">// 如果相连的点没有访问，并且这条边的容量大于 0
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>a[e.to] <span style="color:#f92672">&amp;&amp;</span> e.cap <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+								<span style="color:#75715e">// 记录下一个点的入度边
+</span><span style="color:#75715e"></span>                pre[e.to] <span style="color:#f92672">=</span> make_pair(x, i);
+								<span style="color:#75715e">// 计算当前路径的最小容量
+</span><span style="color:#75715e"></span>                a[e.to] <span style="color:#f92672">=</span> min(a[x], e.cap);
+                que.push(e.to);
+            }
+        }
+        <span style="color:#66d9ef">if</span> (a[t]) <span style="color:#66d9ef">break</span>;
+    }
+}
+</code></pre></div><h2 id="2-增广路径上的边与反向边的容量操作">2. 增广路径上的边与反向边的容量操作</h2>
+<p><img src="https://github.com/Desgard/algo/raw/img/img/part4/ch03/4-edmond-karp/ek-update-path.gif" alt="回溯增广路，流量更新"></p>
+<p>在这个过程中，通过我们上方记录的 <code>unordered_map&lt;int, pair&lt;int, int&gt;&gt; pre</code> 前驱入度集合，从 <code>T</code> 点开始向前回溯，每次回溯的时候通过访问 <code>int a[MAX_V]</code> 来获得这条增广路上的最小流量，然后更新每一个边和反向边。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">max_flow</span>(<span style="color:#66d9ef">int</span> s, <span style="color:#66d9ef">int</span> t) {
+		<span style="color:#75715e">// 最大流结果
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">while</span> (<span style="color:#ae81ff">1</span>) {
+				<span style="color:#75715e">// 从 S -&gt; T 使用 bfs 查询一条增广路
+</span><span style="color:#75715e"></span>        bfs(s, t);
+				<span style="color:#75715e">// 如果发现容量最小是 0 ，说明查不到了
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (a[t] <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">break</span>;
+        <span style="color:#66d9ef">int</span> u <span style="color:#f92672">=</span> t;
+        <span style="color:#66d9ef">while</span> (u <span style="color:#f92672">!=</span> s) {
+						<span style="color:#75715e">// 使用 pre 来获取当前增广路中汇点 T 的入度边下标信息
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">int</span> p <span style="color:#f92672">=</span> pre[u].first, edge_index <span style="color:#f92672">=</span> pre[u].second;
+						<span style="color:#75715e">// 获取正向边和反向边
+</span><span style="color:#75715e"></span>            Edge<span style="color:#f92672">&amp;</span> forward_edge <span style="color:#f92672">=</span> G[p][edge_index];
+            Edge<span style="color:#f92672">&amp;</span> reverse_edge <span style="color:#f92672">=</span> G[forward_edge.to][forward_edge.rev];
+						<span style="color:#75715e">// 更新流量
+</span><span style="color:#75715e"></span>            forward_edge.cap <span style="color:#f92672">-=</span> a[t];
+            reverse_edge.cap <span style="color:#f92672">+=</span> a[t];
+						<span style="color:#75715e">// 逆增广路方向移动游标继续更新
+</span><span style="color:#75715e"></span>            u <span style="color:#f92672">=</span> reverse_edge.to;
+        }
+        ret <span style="color:#f92672">+=</span> a[t];
+    }
+    <span style="color:#66d9ef">return</span> ret;
+}
+</code></pre></div><h1 id="ek-最大流完整实现">EK 最大流完整实现</h1>
+<p><img src="https://github.com/Desgard/algo/raw/img/img/part4/ch03/1-maximum-flow-basic/mf-origin-problem.png" alt="之前口罩运输例子"></p>
+<p>我们用 「Ford-Fulkerson 最大流方法」中的引例再做一次测试，这次使用 EK 算法来求解最大流。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;vector&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;queue&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;unordered_map&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#75715e">#define INF 0x3f3f3f3f
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> MAX_V <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e4</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">5</span>;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Edge</span> {
+    <span style="color:#66d9ef">int</span> to, cap, rev;
+    Edge(<span style="color:#66d9ef">int</span> _to, <span style="color:#66d9ef">int</span> _cap, <span style="color:#66d9ef">int</span> _rev)<span style="color:#f92672">:</span> to(_to), cap(_cap), rev(_rev) {}
+};
+
+vector<span style="color:#f92672">&lt;</span>Edge<span style="color:#f92672">&gt;</span> G[MAX_V];
+<span style="color:#66d9ef">int</span> a[MAX_V];
+unordered_map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, pair<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;&gt;</span> pre;
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">add_edge</span>(<span style="color:#66d9ef">int</span> from, <span style="color:#66d9ef">int</span> to, <span style="color:#66d9ef">int</span> cap) {
+    G[from].push_back(Edge(to, cap, G[to].size()));
+    G[to].push_back(Edge(from, <span style="color:#ae81ff">0</span>, G[from].size() <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>));
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">bfs</span>(<span style="color:#66d9ef">int</span> s, <span style="color:#66d9ef">int</span> t) {
+    memset(a, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(a));
+    queue<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> que;
+    que.push(s);
+    a[s] <span style="color:#f92672">=</span> INF;
+    <span style="color:#66d9ef">while</span> (<span style="color:#f92672">!</span>que.empty()) {
+        <span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> que.front();
+        que.pop();
+        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> G[x].size(); <span style="color:#f92672">++</span> i) {
+            Edge<span style="color:#f92672">&amp;</span> e <span style="color:#f92672">=</span> G[x][i];
+            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>a[e.to] <span style="color:#f92672">&amp;&amp;</span> e.cap <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+                pre[e.to] <span style="color:#f92672">=</span> make_pair(x, i);
+                a[e.to] <span style="color:#f92672">=</span> min(a[x], e.cap);
+                que.push(e.to);
+            }
+        }
+        <span style="color:#66d9ef">if</span> (a[t]) <span style="color:#66d9ef">break</span>;
+    }
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">max_flow</span>(<span style="color:#66d9ef">int</span> s, <span style="color:#66d9ef">int</span> t) {
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">while</span> (<span style="color:#ae81ff">1</span>) {
+        bfs(s, t);
+        <span style="color:#66d9ef">if</span> (a[t] <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">break</span>;
+        <span style="color:#66d9ef">int</span> u <span style="color:#f92672">=</span> t;
+        <span style="color:#66d9ef">while</span> (u <span style="color:#f92672">!=</span> s) {
+            <span style="color:#66d9ef">int</span> p <span style="color:#f92672">=</span> pre[u].first, edge_index <span style="color:#f92672">=</span> pre[u].second;
+            Edge<span style="color:#f92672">&amp;</span> forward_edge <span style="color:#f92672">=</span> G[p][edge_index];
+            Edge<span style="color:#f92672">&amp;</span> reverse_edge <span style="color:#f92672">=</span> G[forward_edge.to][forward_edge.rev];
+            forward_edge.cap <span style="color:#f92672">-=</span> a[t];
+            reverse_edge.cap <span style="color:#f92672">+=</span> a[t];
+            u <span style="color:#f92672">=</span> reverse_edge.to;
+        }
+        ret <span style="color:#f92672">+=</span> a[t];
+    }
+    <span style="color:#66d9ef">return</span> ret;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">16</span>);
+    add_edge(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">13</span>);
+    add_edge(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">12</span>);
+    add_edge(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">9</span>);
+    add_edge(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">20</span>);
+    add_edge(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">4</span>);
+    add_edge(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">14</span>);
+    add_edge(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">7</span>);
+    add_edge(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">4</span>);
+    <span style="color:#66d9ef">int</span> ret <span style="color:#f92672">=</span> max_flow(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">5</span>); <span style="color:#75715e">// 输出 23 
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> ret <span style="color:#f92672">&lt;&lt;</span> endl;
+}
+
+</code></pre></div><p>发现同样的，最终结果输出 23 是最大流，符合我们预期结果。</p>
+<h1 id="ek-算法时间复杂度及适用情况">EK 算法时间复杂度及适用情况</h1>
+<p>由于这次我们使用了 BFS 求解增广路，假设我们的节点数量是 V，边的数量是 E，则 EK 算法的时间复杂度上限是：</p>
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \[
+O(V·E^2)
+\]
+</span>
+
+<p>分析起来很简单，<strong>因为 BFS 找增广路的时间复杂度是 O(E)，最多需要 O(V·E) 次查询，所以可得到答案</strong>。如果想看证明，我会在「阅读原文」中的「一瓜算法小册」中进行更新。</p>
+<p>我们已经知道了 FF 算法和 EK 算法的复杂度：</p>
+
+
+<span class="katex">
+  \[
+T_{FF} = O(E·F)
+\]
+</span>
+
+
+
+<span class="katex">
+  \[
+T_{EK}=O(V·E^2)
+\]
+</span>
+
+<p>根据复杂度，我们可以总结出这么一个结论（E 是边的数量，V 是节点数量）：</p>
+<ol>
+<li>当流网络中边少的时候，或者说是一个**稀疏图（E &lt; VlogV）**时，我们可以选用 EK 算法进行最大流求解；</li>
+<li>当流网络中边多的时候，或者说是一个**稠密图（E &gt; VlogV）**时，可以选用 FF 方法求解。</li>
+</ol>
+<h1 id="总结">总结</h1>
+<p>对于最大流算法优化的讨论，我们已经完成了第一步 —— 学习 EK 算法。EK 算法启发我们可以通过 BFS 对增广路进行查询，从而消除 DFS 中查找增广路的时间不确定性，让效率在不同的流网络中可控。</p>
+<p>在 Fold-Fulkerson 方法的基础之上，我们了解了增广路，了解了最小割。但是对于流量而言，无论是 FF 方法还是 EK 算法，我们一直都忽视了一个重要的关键，那就是对<strong>距离的描述</strong>。下一篇文章我们来讲述在距离的帮助下，什么是分层网络，以及 Dinic 最大流算法是如何优化的！</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#知识梳理">知识梳理</a></li>
+    <li><a href="#ford-fulkerson-方法有什么问题">Ford-Fulkerson 方法有什么问题？</a></li>
+    <li><a href="#算法导论上给出的最坏情况分析">算法导论上给出的最坏情况分析</a></li>
+    <li><a href="#基于-dfs-的-ff-方法复杂度分析">基于 DFS 的 FF 方法复杂度分析</a></li>
+    <li><a href="#edmond-karp-算法解析">Edmond-Karp 算法解析</a>
+      <ul>
+        <li><a href="#1-bfs-搜索查询增广路">1. BFS 搜索查询增广路</a></li>
+        <li><a href="#2-增广路径上的边与反向边的容量操作">2. 增广路径上的边与反向边的容量操作</a></li>
+      </ul>
+    </li>
+    <li><a href="#ek-最大流完整实现">EK 最大流完整实现</a></li>
+    <li><a href="#ek-算法时间复杂度及适用情况">EK 算法时间复杂度及适用情况</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="矩阵的递推关系分析"><meta property="og:title" content="矩阵的递推关系分析" />
+<meta property="og:description" content="这篇文章可能会有一些难度，但是所有的预备基础都在前三篇文章中：
+ 快速幂 快速幂取模 矩阵快速幂  引子 数字是我们在编程中最常接触的元数据。无论是在业务还是刷题，多半部分都是数字的运算，其次是字符串，再次是布尔。
+虽然矩阵也是由数字构成的，但是矩阵往往是描述一个多元方程组的元数据。在业务中很少接触方程的运算，所以自然而然的《线性代数》这门重要但又不重要的学科在工作后说忘就忘。
+所以，这篇文章可能对于你工作甚至是面试都不一定有直接的收益，如果考虑业务能力和面试 ROI，也就不需要再浪费时间阅读。
+斐波那契的矩阵快速幂归纳 通过之前的文章，我们已经推出了斐波那契数列通过矩阵来表示的递推公式：
+  \[ \begin{bmatrix}f(n)\\f(n-1)\end{bmatrix}=\begin{bmatrix}1&1\\ 1&0\end{bmatrix}\begin{bmatrix}f(n-1)\\f(n-2)\end{bmatrix} \]  再来分析一下我们将表达式 \(f(n) = f(n - 1) &#43; f(n - 2)\)  转化成矩阵形式的递推公式到底目的是什么？为什么只要这么做，就可以带来优化算法时间复杂度的收益？
+从这三个点来思考：
+ 关系变量减少：原来是 \(f(n) = f(n - 1) &#43; f(n - 2)\)  ，通过矩阵表示后，降为 \(A(n - 1)·C = A(n)\)  。 恰好通过矩阵形式表示后变成了一个等比数列的形式，这样就可以求出通向公式。而通向公式又是一个幂指数的运算，所以我们联想到了快速幂算法。  \(N · N\)  方阵的矩阵乘法，遵循结合律。  归纳问题 思考点 3 是矩阵的规律，这个我们就不再细究。但是思考点 1 和 2，可以为我们延伸出以下的几种场景：
+增加系数 重点在于如果我们遇到一个表达式 \(f(x)\)  ，只要我们能得到它的递推公式，将其转换成 \(A(n - 1)·C = A(n)\)  的形式其实就可以沿用斐波那契数列矩阵快速幂的整体思路拉求解。既然这样，我们就再次从斐波那契数列入手，先对 \(f(n - 1)\)  和 \(f(n - 2)\)  加系数：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.desgard.com/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/" />
+
+<title>矩阵的递推关系分析 | 一瓜算法小册</title>
+<link rel="icon" href="/algo/favicon.png" type="image/x-icon">
+
+
+<link rel="stylesheet" href="/algo/book.min.edc993575be58655f3e49634e3ca6db09cc38ac9aa03ecdbe81d941636e35273.css" integrity="sha256-7cmTV1vlhlXz5JY048ptsJzDismqA&#43;zb6B2UFjbjUnM=">
+
+
+<script defer src="/algo/en.search.min.32075440d70fd273d2efb6e0ff5b6e0fc98a3319f4c164e8da82869bcbc7aee1.js" integrity="sha256-MgdUQNcP0nPS77bg/1tuD8mKMxn0wWTo2oKGm8vHruE="></script>
+
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-analytics.js"></script>
+
+<script>
+  
+  var firebaseConfig = {
+    apiKey: "AIzaSyAZeDebssmjx4XyPoVaXqD4KGUlOMtwcx0",
+    authDomain: "algo-book.firebaseapp.com",
+    databaseURL: "https://algo-book.firebaseio.com",
+    projectId: "algo-book",
+    storageBucket: "algo-book.appspot.com",
+    messagingSenderId: "622768980616",
+    appId: "1:622768980616:web:fed8fa42fe59ab711bd53d",
+    measurementId: "G-5HQT6KLJEY"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/algo"><span>一瓜算法小册</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+  <ul>
+<li><a href="/algo/">序章</a></li>
+<li>第一部分 做题技巧
+<ul>
+<li>第一章 巧用复杂度
+<ul>
+<li><a href="/algo/docs/part1/ch01/1-time-complexity/">时间复杂度估算土法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第二部分 计算机数学思维
+<ul>
+<li>第一章 快速幂
+<ul>
+<li><a href="/algo/docs/part2/ch01/1-quick-pow/">加速幂运算</a></li>
+<li><a href="/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模算法</a></li>
+<li><a href="/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+<li><a href="/algo/docs/part2/ch01/4-matrix-quick-pow-analysis/"class=active>矩阵的递推关系分析</a></li>
+</ul>
+</li>
+<li>第二章 数论
+<ul>
+<li><a href="/algo/docs/part2/ch02/1-eratos-sive/">快速素数筛法</a></li>
+<li><a href="/algo/docs/part2/ch02/2-euclidean/">欧几里得算法</a></li>
+<li><a href="/algo/docs/part2/ch02/3-ext-euclidean/">*扩展欧几里得算法</a></li>
+</ul>
+</li>
+<li>第三章 经典模型
+<ul>
+<li><a href="/algo/docs/part2/ch03/1-range-max-query/">RMQ 问题</a></li>
+</ul>
+</li>
+<li>第四章 二分搜索
+<ul>
+<li><a href="/algo/docs/part2/ch04/1-binary-search-one/">二分搜索·上</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>第三部分 数据结构
+<ul>
+<li>第一章 基础数据结构</li>
+<li>第二章 区间数据结构
+<ul>
+<li><a href="/algo/docs/part3/ch02/1-segment-tree-rmq/">用线段树再看 RMQ 问题</a></li>
+<li><a href="/algo/docs/part3/ch02/2-segment-tree-combat/">线段树实战要点</a></li>
+<li><a href="/algo/docs/part3/ch02/3-segment-tree-range/">线段树区间更新操作</a></li>
+</ul>
+</li>
+<li>第三章 字符串</li>
+<li>第四章 排序二叉树</li>
+</ul>
+</li>
+<li>第四部分 图论
+<ul>
+<li>第一章 图论基础算法</li>
+<li>第二章 深度优先的连通性分析</li>
+<li>第三章 网络流
+<ul>
+<li><a href="/algo/docs/part4/ch03/1-maximum-flow-basic/">*初识最大流问题</a></li>
+<li><a href="/algo/docs/part4/ch03/2-ford-fulkerson/">*Ford-Fulkerson最大流方法</a></li>
+<li><a href="/algo/docs/part4/ch03/3-perfect-matching/">*二分匹配的最大流思维</a></li>
+<li><a href="/algo/docs/part4/ch03/4-edmond-karp/">*Edmond-Karp 最大流算法详解</a></li>
+</ul>
+</li>
+<li>第四章 二分图匹配</li>
+</ul>
+</li>
+<li>第五部分 数学建模</li>
+</ul>
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/algo/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>矩阵的递推关系分析</strong>
+
+  <label for="toc-control">
+    <img src="/algo/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#引子">引子</a></li>
+        <li><a href="#斐波那契的矩阵快速幂归纳">斐波那契的矩阵快速幂归纳</a></li>
+        <li><a href="#归纳问题">归纳问题</a>
+          <ul>
+            <li><a href="#增加系数">增加系数</a></li>
+            <li><a href="#增加常数">增加常数</a></li>
+            <li><a href="#指数变量的处理">指数变量的处理</a></li>
+            <li><a href="#嵌套矩阵">嵌套矩阵</a></li>
+          </ul>
+        </li>
+        <li><a href="#总结与延伸学习">总结与延伸学习</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+<article class="markdown">
+  <h1>矩阵的递推关系分析</h1><p><img src="https://raw.githubusercontent.com/Desgard/algo/img/img/part2/ch01/4-matrix-quick-pow-analysis/title.png" alt="题头"></p>
+<p>这篇文章可能会有一些难度，但是所有的预备基础都在前三篇文章中：</p>
+<ul>
+<li><a href="https://www.desgard.com/algo/docs/part2/ch01/1-quick-pow/">快速幂</a></li>
+<li><a href="https://www.desgard.com/algo/docs/part2/ch01/2-quick-pow-mod/">快速幂取模</a></li>
+<li><a href="https://www.desgard.com/algo/docs/part2/ch01/3-matrix-quick-pow/">矩阵快速幂</a></li>
+</ul>
+<h2 id="引子">引子</h2>
+<p>数字是我们在编程中最常接触的元数据。无论是在业务还是刷题，多半部分都是数字的运算，其次是字符串，再次是布尔。</p>
+<p>虽然矩阵也是由数字构成的，但是矩阵往往是描述一个多元方程组的元数据。在业务中很少接触方程的运算，所以自然而然的《线性代数》这门重要但又不重要的学科在工作后说忘就忘。</p>
+<p>所以，这篇文章可能对于你工作甚至是面试都不一定有直接的收益，如果考虑业务能力和面试 ROI，也就不需要再浪费时间阅读。</p>
+<h2 id="斐波那契的矩阵快速幂归纳">斐波那契的矩阵快速幂归纳</h2>
+<p>通过之前的文章，我们已经推出了斐波那契数列通过矩阵来表示的递推公式：</p>
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+
+
+<span class="katex">
+  \[
+\begin{bmatrix}f(n)\\f(n-1)\end{bmatrix}=\begin{bmatrix}1&1\\ 1&0\end{bmatrix}\begin{bmatrix}f(n-1)\\f(n-2)\end{bmatrix}
+\]
+</span>
+
+<p>再来分析一下我们将表达式 
+
+<span class="katex">
+  \(f(n) = f(n - 1) + f(n - 2)\)
+</span>
+ 转化成矩阵形式的递推公式到底目的是什么？为什么只要这么做，就可以带来优化算法时间复杂度的收益？</p>
+<p>从这三个点来思考：</p>
+<ol>
+<li><strong>关系变量减少</strong>：原来是 
+
+<span class="katex">
+  \(f(n) = f(n - 1) + f(n - 2)\)
+</span>
+ ，通过矩阵表示后，降为 
+
+<span class="katex">
+  \(A(n - 1)·C = A(n)\)
+</span>
+ 。</li>
+<li>恰好通过矩阵形式表示后变成了一个<strong>等比数列</strong>的形式，这样就可以求出通向公式。而通向公式又是一个幂指数的运算，所以我们联想到了快速幂算法。</li>
+<li>
+
+<span class="katex">
+  \(N · N\)
+</span>
+ 方阵的矩阵乘法，遵循结合律。</li>
+</ol>
+<h2 id="归纳问题">归纳问题</h2>
+<p>思考点 3 是矩阵的规律，这个我们就不再细究。但是思考点 1 和 2，可以为我们延伸出以下的几种场景：</p>
+<h3 id="增加系数">增加系数</h3>
+<p>重点在于如果我们遇到一个表达式 
+
+<span class="katex">
+  \(f(x)\)
+</span>
+ ，只要我们能得到它的递推公式，将其转换成  
+
+<span class="katex">
+  \(A(n - 1)·C = A(n)\)
+</span>
+ 的形式其实就可以沿用斐波那契数列矩阵快速幂的整体思路拉求解。既然这样，我们就再次从斐波那契数列入手，先对 
+
+<span class="katex">
+  \(f(n - 1)\)
+</span>
+ 和 
+
+<span class="katex">
+  \(f(n - 2)\)
+</span>
+ 加系数：</p>
+
+
+<span class="katex">
+  \[
+f(n)=a\ f(n-1)+b\ f(n-2)
+\]
+</span>
+
+<p>使用与推导斐波那契矩阵表达式相同的方式，来对上式进行推导：</p>
+
+
+<span class="katex">
+  \[
+\begin{cases}\begin{aligned}& f(n)=&af(n-1)&+bf(n-2) \\ & f(n - 1)= &f(n-1)&\end{aligned} \end{cases}
+\]
+</span>
+
+
+
+<span class="katex">
+  \[
+\begin{bmatrix}f(n)\\f(n-1)\end{bmatrix}=\begin{bmatrix}a&b\\ 1&0\end{bmatrix}\begin{bmatrix}f(n-1)\\f(n-2)\end{bmatrix}
+\]
+</span>
+
+<p>这里给出一道对应的训练习题：<a href="%5Bhttp://acm.hdu.edu.cn/showproblem.php?pid=1757%5D(http://acm.hdu.edu.cn/showproblem.php?pid=1757)">HDU 1757 - A Simple Math Problem</a>。</p>
+<h3 id="增加常数">增加常数</h3>
+<p>在增加系数的基础上，我们可以继续的增加常数，例如下式：</p>
+
+
+<span class="katex">
+  \[
+f(n)=a\ f(n-1)+b\ f(n-2) + c
+\]
+</span>
+
+<p>根据上面的推导经验，由于我们的右边要构造成 
+
+<span class="katex">
+  \(A(n - 1)·C\)
+</span>
+ 的结构，为了保证递推关系，在这种情况下可以进行<strong>扩维操作。</strong></p>
+
+
+<span class="katex">
+  \[
+\begin{cases}\begin{aligned}& f(n)&=&af(n-1)&+&bf(n-2)&+&c \\ & f(n - 1)&=&\ f(n-1) \\ &c&=&&&&c\end{aligned} \end{cases}
+\]
+</span>
+
+
+
+<span class="katex">
+  \[
+\begin{bmatrix}f(n)\\f(n-1)\\c\end{bmatrix}=\begin{bmatrix}a&b&1\\ 1&0&0 \\ 0&0&1\end{bmatrix}\begin{bmatrix}f(n-1)\\f(n-2)\\c\end{bmatrix}
+\]
+</span>
+
+<p>由此，对于增加常数或者增加齐次的项数这种情况，可以使用上述方法，通过扩维来扩展矩阵对多项式的表达。</p>
+<h3 id="指数变量的处理">指数变量的处理</h3>
+<p>其实很多情况下，并不是单纯的 
+
+<span class="katex">
+  \(f(n)\)
+</span>
+ 的单一函数，也有可能含有 
+
+<span class="katex">
+  \(g(n)\)
+</span>
+ 的形式存在于代数项式中。如果我们想用矩阵来表示递推关系式，<strong>必须要满足 
+
+<span class="katex">
+  \(g(n)\)
+</span>
+ 在乘积的情况下，表现出自变量 <code>n</code> 自增的情况</strong>。符合这种条件的就是<strong>指数函数</strong>。</p>
+<p>例如下式：</p>
+
+
+<span class="katex">
+  \[
+f(n)=a\ c^{n}+b\ f(n-1) + d
+\]
+</span>
+
+<p>我们将指数函数用 
+
+<span class="katex">
+  \(g(n)\)
+</span>
+ 来表示，并且可以发现其中有这么一个规律：</p>
+
+
+<span class="katex">
+  \[
+g(n)=c^n
+\]
+</span>
+
+<p>$$g(n)=g(n-1) \times g(1) = c^{n-1}c$$</p>
+<p>这里 
+
+<span class="katex">
+  \(g(n)\)
+</span>
+ 的规律，其实就是我上面所说的对函数的乘积表现为自变量的加和。</p>
+<p>所以这里可以如此构造 
+
+<span class="katex">
+  \(f(n)\)
+</span>
+ 的矩阵递推式：</p>
+
+
+<span class="katex">
+  \[
+\begin{bmatrix}f(n)\\c^n\\d\end{bmatrix}=\begin{bmatrix}b&ac&1\\ 0&c&0 \\ 0&0&1\end{bmatrix}\begin{bmatrix}f(n-1)\\c^{n-1}\\d\end{bmatrix}
+\]
+</span>
+
+<p>如此，含有指数函数 
+
+<span class="katex">
+  \(g(n)\)
+</span>
+ 为项式的情况我们也可以通过矩阵快速幂来求解。</p>
+<h3 id="嵌套矩阵">嵌套矩阵</h3>
+<p>通过上面的总结，其实我们解决的核心问题就是将递推公式转化成矩阵形式即可。继续来发散性思维，如果递推公式中已经有矩阵，那么是不是也可以使用相同的关系式思路来转化问题呢？</p>
+<p>答案肯定是可以的。这里给出一道例题 <a href="%5Bhttp://poj.org/problem?id=3233%5D(http://poj.org/problem?id=3233)">POJ-3233 Matrix Power Series</a>。</p>
+<p>题目描述了如果存在下列等式：</p>
+
+
+<span class="katex">
+  \[
+S_k=A+A^1+A^2+...+A^k=\sum^{k}_{i=1}A^i
+\]
+</span>
+
+<p>其实根据这种求和式子我们可以立马推出：</p>
+
+
+<span class="katex">
+  \[
+S_k=A·S_{k-1} + A
+\]
+</span>
+
+<p>泛型这是一个 <code>k</code> 和 <code>k - 1</code> 的递推公式，另外有一个常数项。根据前文的一些推导经验，我们来构造多项式和矩阵表示：</p>
+
+
+<span class="katex">
+  \[
+\begin{cases}\begin{aligned}& S(n)=&A·S(n-1)&+&A \\ & A= &&&A&\end{aligned} \end{cases}
+\]
+</span>
+
+<p>由于 <code>S(n)</code> 和 <code>A</code> 都是矩阵，所以前文在构造矩阵的时候，其中的单位 <code>1</code> 都要改成单位矩阵 <code>E</code>。</p>
+
+
+<span class="katex">
+  \[
+\begin{bmatrix}S(n)\\A\end{bmatrix}=\begin{bmatrix}A&E\\ 0&E\end{bmatrix}\begin{bmatrix}S(n-1)\\A\end{bmatrix}
+\]
+</span>
+
+<p>如此，矩阵的嵌套问题也就解决了。</p>
+<h2 id="总结与延伸学习">总结与延伸学习</h2>
+<p>我们专题性地研究了快速幂算法，直至现在应该将在计算机领域中所有场景的快速幂问题全部覆盖到了。但其中让你受益最大的，仍旧是在数字领域中的<strong>快速幂取模算法</strong>，所以我个人的建议是矩阵场景下无需更多的关注。</p>
+<p>这里给大家带来两个延伸学习：</p>
+<ol>
+<li>矩阵快速幂中其实还有一个瓶颈你可以继续深入的去研究，那就是<strong>矩阵乘法的效率优化</strong>。在之前的实现中，所有的矩阵乘法都是通过 
+
+<span class="katex">
+  \(O(n^3)\)
+</span>
+ 的方式来实现的，这里给你抛出一个有意思的矩阵乘法算法 - <a href="%5Bhttps://zh.wikipedia.org/wiki/%E6%96%BD%E7%89%B9%E6%8B%89%E6%A3%AE%E6%BC%94%E7%AE%97%E6%B3%95%5D(https://zh.wikipedia.org/wiki/%E6%96%BD%E7%89%B9%E6%8B%89%E6%A3%AE%E6%BC%94%E7%AE%97%E6%B3%95)">Strassen algorithm</a>，它可以将矩阵乘法的时间复杂度优化到 
+
+<span class="katex">
+  \(O(n^{log7})\)
+</span>
+ ，<strong>其核心思想是分治</strong>。</li>
+<li>在某些场景下的二项式展开也可以利用矩阵来描述递推式，这里给你延伸一下<a href="**%5Bhttps://zh.wikipedia.org/wiki/%E5%B8%95%E6%96%AF%E5%8D%A1%E6%B3%95%E5%89%87%5D(https://zh.wikipedia.org/wiki/%E5%B8%95%E6%96%AF%E5%8D%A1%E6%B3%95%E5%89%87)**"><strong>帕斯卡恒等式</strong></a>，<strong>在某些二项式展开的情况下，可以快速进行递推，减少运算次数。对应习题是 <a href="**%5Bhttp://acm.hdu.edu.cn/showproblem.php?pid=2855%5D(http://acm.hdu.edu.cn/showproblem.php?pid=2855)**">HDU-2855</a>。</strong></li>
+</ol>
+<p>以上就是矩阵快速幂的所有进阶内容了，多谢大家支持。</p>
+<hr/>
+  <img src="https://raw.githubusercontent.com/Desgard/algo/img/img/_index/wechat-qrcode.png" style="max-width: 100%;"/>
+  <p>本作品采用 <strong><a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a></strong> 进行许可。</p>
+</article>
+ 
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+      </footer>
+      
+
+<div id='gitalk-container'></div>
+<script>
+  let url = window.location.pathname;
+  if (url.startsWith("/algo/docs/")) {
+    url = url.slice(11);
+  }
+  const gitalk = new Gitalk({
+    id: url,
+    clientID: '86ab0eae3b6d0781c3b6',
+    clientSecret: '0394a321f965b11c9f7fbeb81684777cad0f7fea',
+    repo: 'algo',
+    owner: 'Desgard',
+    admin: ['Desgard'],
+    
+    distractionFreeMode: false
+  })
+  gitalk.render('gitalk-container')
+</script>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#引子">引子</a></li>
+        <li><a href="#斐波那契的矩阵快速幂归纳">斐波那契的矩阵快速幂归纳</a></li>
+        <li><a href="#归纳问题">归纳问题</a>
+          <ul>
+            <li><a href="#增加系数">增加系数</a></li>
+            <li><a href="#增加常数">增加常数</a></li>
+            <li><a href="#指数变量的处理">指数变量的处理</a></li>
+            <li><a href="#嵌套矩阵">嵌套矩阵</a></li>
+          </ul>
+        </li>
+        <li><a href="#总结与延伸学习">总结与延伸学习</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
