@@ -128,4 +128,4 @@ int main() {
 {{< katex display >}}
 \frac{a_1(1-q^k)}{1-q}=2^k-1=N \\ k=log_2{N-1} \Rightarrow O(logN){{< /katex >}}
 
-好了，这就是快速幂的全部内容了。你可以使用这道题的知识来求解 [LeetCode 372. Super Pow]([https://leetcode-cn.com/classic/problems/super-pow/description/](https://leetcode-cn.com/classic/problems/super-pow/description/)) 。下一篇文我们来手把手 AC 这题。
+好了，这就是快速幂的全部内容了。你可以使用这道题的知识来求解 [LeetCode 372. Super Pow](https://leetcode.cn/classic/problems/super-pow/description/) 。下一篇文我们来手把手 AC 这题。
